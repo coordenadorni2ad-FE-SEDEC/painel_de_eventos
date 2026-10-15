@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Integrado de Defesa Civil - SEDEC-RJ</title>
+  <title>Painel Executivo de Defesa Civil - SEDEC-RJ</title>
   
   <!-- Dependências do Leaflet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
-  <!-- Arquivo mapa.js (com a variável GEOJSON) na mesma pasta -->
+  <!-- Arquivo mapa.js -->
   <script src="mapa.js"></script>
 
   <style>
@@ -25,7 +25,6 @@
       --blue: #38bdf8;
       --green: #10b981;
       --amber: #f59e0b;
-      --purple: #a855f7;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -44,15 +43,15 @@
       justify-content: space-between;
       align-items: center;
       gap: 14px;
-      padding-bottom: 14px;
+      padding-bottom: 12px;
       border-bottom: 1px solid var(--border-color);
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
-    .header-title-box { display: flex; align-items: center; gap: 14px; }
+    .header-title-box { display: flex; align-items: center; gap: 12px; }
     
     .brand-logo-container {
-      width: 48px;
-      height: 48px;
+      width: 46px;
+      height: 46px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -64,16 +63,16 @@
     }
     .brand-logo-container img { width: 100%; height: 100%; object-fit: contain; }
 
-    .header h1 { font-size: 19px; font-weight: 800; color: #fff; }
-    .header p { font-size: 12px; color: var(--text-muted); }
+    .header h1 { font-size: 18px; font-weight: 800; color: #fff; }
+    .header p { font-size: 11px; color: var(--text-muted); }
 
-    .header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
     
     .nav-tabs {
       display: flex;
       gap: 4px;
       background: #0f172a;
-      padding: 4px;
+      padding: 3px;
       border-radius: 8px;
       border: 1px solid var(--border-color);
     }
@@ -81,7 +80,7 @@
       background: transparent;
       color: var(--text-muted);
       border: none;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 6px;
       font-size: 11px;
       font-weight: 700;
@@ -100,32 +99,31 @@
       color: var(--orange);
       border: 1px solid #334155;
       padding: 6px 12px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       border-radius: 6px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.2s;
     }
     .btn-sync:hover { background: #334155; border-color: var(--orange); }
     .btn-sync.spinning svg { animation: rot 1s linear infinite; }
     @keyframes rot { 100% { transform: rotate(360deg); } }
 
     .status-pill {
-      font-size: 11px;
+      font-size: 10.5px;
       padding: 4px 8px;
       border-radius: 20px;
       background: #0f172a;
       border: 1px solid var(--border-color);
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
     }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; }
     .dot.online { background: #10b981; box-shadow: 0 0 6px #10b981; }
-    .dot.syncing { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+    .dot.syncing { background: #f59e0b; }
     .dot.offline { background: #ef4444; }
 
     /* CONTROLE DE PERÍODO */
@@ -180,41 +178,37 @@
     }
     .btn-preset:hover, .btn-preset.active { background: var(--orange); color: #fff; border-color: var(--orange); }
 
-    /* LAYOUT DIVIDIDO EM DUAS COLUNAS */
+    /* LAYOUT EM 2 COLUNAS */
     .main-workspace {
       display: grid;
-      grid-template-columns: 1.15fr 0.85fr;
+      grid-template-columns: 1.12fr 0.88fr;
       gap: 16px;
       align-items: start;
     }
 
     @media (max-width: 1080px) {
-      .main-workspace {
-        grid-template-columns: 1fr;
-      }
-      .col-right {
-        position: static !important;
-      }
+      .main-workspace { grid-template-columns: 1fr; }
+      .col-right { position: static !important; }
     }
 
-    .col-left { display: flex; flex-direction: column; gap: 14px; }
-    .col-right { position: sticky; top: 14px; }
+    .col-left { display: flex; flex-direction: column; gap: 12px; }
+    .col-right { position: sticky; top: 12px; }
 
     /* KPIS GERAIS */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
       gap: 10px;
     }
     .kpi-card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 12px;
+      padding: 10px 12px;
     }
-    .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
-    .kpi-val { font-size: 20px; font-weight: 800; margin: 2px 0; color: #fff; }
-    .kpi-sub { font-size: 10px; color: var(--text-muted); }
+    .kpi-label { font-size: 9.5px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
+    .kpi-val { font-size: 19px; font-weight: 800; margin: 2px 0; color: #fff; }
+    .kpi-sub { font-size: 9.5px; color: var(--text-muted); }
 
     /* FILTROS */
     .filter-box {
@@ -223,16 +217,16 @@
       border-radius: 8px;
       padding: 12px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
       gap: 10px;
     }
     .filter-group label {
       display: block;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       text-transform: uppercase;
       color: var(--text-muted);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .filter-group select, .filter-group input {
       width: 100%;
@@ -240,7 +234,7 @@
       border: 1px solid var(--border-color);
       color: #fff;
       padding: 6px 8px;
-      border-radius: 6px;
+      border-radius: 5px;
       font-size: 11px;
       outline: none;
     }
@@ -260,17 +254,28 @@
       align-items: center;
       margin-bottom: 8px;
     }
-    .map-header .chart-title { font-size: 12px; font-weight: 800; text-transform: uppercase; color: #fff; }
+    .map-header .chart-title { font-size: 11.5px; font-weight: 800; text-transform: uppercase; color: #fff; }
+
+    .btn-reset-map {
+      background: #0f172a;
+      color: var(--orange);
+      border: 1px solid var(--border-color);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-reset-map:hover { background: #334155; }
 
     #map {
-      height: 580px;
+      height: 610px;
       width: 100%;
       min-width: 100%;
       border-radius: 6px;
       background: #EEF1F4;
     }
 
-    /* ESTILOS ESPECÍFICOS DO SEU MAPA (TOOLTIP E POPUP) */
     .mun-tooltip {
       background: rgba(22, 36, 63, 0.94);
       color: #fff;
@@ -283,12 +288,7 @@
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       pointer-events: none;
     }
-    .leaflet-popup-content-wrapper {
-      border-radius: 6px;
-      font-family: sans-serif;
-      font-size: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    }
+    .leaflet-popup-content-wrapper { border-radius: 6px; font-family: sans-serif; font-size: 12px; }
     .leaflet-popup-content { margin: 8px 12px; line-height: 1.4; }
     .popup-nome { font-weight: 700; font-size: 13px; margin-bottom: 2px; color: #16243F; }
     .popup-redec { font-family: monospace; font-size: 10.5px; color: #5B6B82; margin-bottom: 4px; }
@@ -313,7 +313,7 @@
     /* GRÁFICOS */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
       gap: 12px;
     }
     .chart-panel {
@@ -346,7 +346,7 @@
       flex-wrap: wrap;
       gap: 8px;
     }
-    .table-wrapper { max-height: 380px; overflow: auto; }
+    .table-wrapper { max-height: 360px; overflow: auto; }
     table { width: 100%; border-collapse: collapse; text-align: left; font-size: 11px; }
     th {
       background: #0f172a;
@@ -369,13 +369,8 @@
       font-weight: 700;
       text-transform: uppercase;
       margin-right: 3px;
-      margin-bottom: 2px;
     }
-    .badge-desliz { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
-    .badge-inund { background: #082f49; color: #38bdf8; border: 1px solid #0369a1; }
     .badge-arvore { background: #022c22; color: #34d399; border: 1px solid #065f46; }
-    .badge-desabam { background: #451a03; color: #fbbf24; border: 1px solid #78350f; }
-    .badge-decreto { background: #3b0764; color: #c084fc; border: 1px solid #581c87; }
     .badge-ativo { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
 
     .pagination-btn {
@@ -483,7 +478,7 @@
       <div class="map-panel" id="painelMapa">
         <div class="map-header">
           <div class="chart-title">Mapa Territorial do Rio de Janeiro</div>
-          <span style="font-size: 10px; color: var(--text-muted);" id="statusMapa">Carregando malha...</span>
+          <button class="btn-reset-map" id="btnResetMap">Enquadrar Estado (RJ)</button>
         </div>
         
         <div id="map"></div>
@@ -494,7 +489,7 @@
           <div class="map-legend-item"><div class="map-legend-swatch" style="background:#fb923c;"></div> 6 - 20</div>
           <div class="map-legend-item"><div class="map-legend-swatch" style="background:#ea580c;"></div> 21 - 50</div>
           <div class="map-legend-item"><div class="map-legend-swatch" style="background:#b91c1c;"></div> > 50</div>
-          <div class="map-legend-item">🔴 Ponto com coordenadas</div>
+          <div class="map-legend-item">🔴 Ponto de Evento</div>
         </div>
       </div>
     </div>
@@ -539,43 +534,12 @@
       "Vassouras": "REDEC 5 - Sul I", "Volta Redonda": "REDEC 5 - Sul I"
     };
 
-    /* =========================================================================
-       2. CONFIGURAÇÃO DOS MÓDULOS DE DASHBOARD
-       ========================================================================= */
     const CONFIG_MODULOS = {
-      "SISGEO": {
-        ativo: true,
-        rotulo: "SISGEO (Ocorrências)",
-        tipo: "sisgeo",
-        temPeriodo: true
-      },
-      "EVENTOS REDECS": {
-        ativo: true,
-        rotulo: "Eventos Operacionais",
-        tipo: "eventos",
-        temPeriodo: true
-      },
-      "DECRETAÇÃO": {
-        ativo: true,
-        rotulo: "Decretos de Emergência",
-        tipo: "decretacao",
-        temPeriodo: false
-      },
-      "PONTOS DE APOIO": {
-        ativo: true,
-        rotulo: "Pontos de Apoio",
-        tipo: "pontos_apoio",
-        temPeriodo: true
-      },
-      "AJUDA HUMANITÁRIA": {
-        ativo: true,
-        rotulo: "Ajuda Humanitária",
-        tipo: "ajuda_humanitaria",
-        temPeriodo: true
-      },
-      "LISTAS_AUX": { ativo: false, backend: true },
-      "REDECS_E_MUNICIPIOS": { ativo: false, backend: true },
-      "AUTOCRAT": { ativo: false, backend: true }
+      "SISGEO": { ativo: true, rotulo: "SISGEO (Ocorrências)", tipo: "sisgeo", temPeriodo: true },
+      "EVENTOS REDECS": { ativo: true, rotulo: "Eventos Operacionais", tipo: "eventos", temPeriodo: true },
+      "DECRETAÇÃO": { ativo: true, rotulo: "Decretos de Emergência", tipo: "decretacao", temPeriodo: false },
+      "PONTOS DE APOIO": { ativo: true, rotulo: "Pontos de Apoio", tipo: "pontos_apoio", temPeriodo: true },
+      "AJUDA HUMANITÁRIA": { ativo: true, rotulo: "Ajuda Humanitária", tipo: "ajuda_humanitaria", temPeriodo: true }
     };
 
     const CONFIG_URL_PLANILHA = "https://script.google.com/macros/s/AKfycbwC7sf80Z2HSS2PewAnM8T_AAOA9rn8KNGEA_pVoA0xcevecSisJrBPQi472V65Qo0l/exec";
@@ -587,11 +551,10 @@
     let pagina = 1;
     const porPagina = 8;
 
-    /* Variáveis do Mapa */
+    /* Variáveis do Mapa Leaflet */
     let mapInstance = null;
     let markersLayerGroup = null;
     let currentScopeBounds = null;
-    let popupCloseTimer = null;
     let redecAtiva = "ALL";
     let MUNICIPIOS_ESCOPO = [];
 
@@ -608,9 +571,6 @@
       }
     }
 
-    /* =========================================================================
-       3. FUNÇÕES CANÔNICAS DE NORMALIZAÇÃO
-       ========================================================================= */
     function normalizarTexto(s) {
       return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     }
@@ -665,37 +625,24 @@
     }
 
     /* =========================================================================
-       4. INICIALIZAÇÃO DO MAPA ESRI CANVAS
+       INICIALIZAÇÃO DO MAPA ESRI CANVAS E POLÍGONOS
        ========================================================================= */
     function initMap() {
       if (!mapInstance) {
         mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false }).setView([-22.35, -42.7], 7.5);
         
-        // Camada base Esri Light Gray Canvas (a mesma do seu projeto)
         L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
           attribution: "Tiles &copy; Esri &mdash; SEDEC RJ",
           maxZoom: 14
         }).addTo(mapInstance);
 
         markersLayerGroup = L.layerGroup().addTo(mapInstance);
+      }
 
-        // Suave Zoom Out ao fechar Popup
-        mapInstance.on("popupclose", function() {
-          popupCloseTimer = setTimeout(function() {
-            let hasOpen = false;
-            mapInstance.eachLayer(l => { if (l instanceof L.Popup) hasOpen = true; });
-            if (!hasOpen && currentScopeBounds && currentScopeBounds.isValid()) {
-              mapInstance.fitBounds(currentScopeBounds, { padding: [14, 14], animate: true, duration: 0.6 });
-            }
-          }, 80);
-        });
-
-        mapInstance.on("popupopen", function() {
-          if (popupCloseTimer) {
-            clearTimeout(popupCloseTimer);
-            popupCloseTimer = null;
-          }
-        });
+      // Verificação de segurança: aguarda o mapa.js ser carregado
+      if (typeof GEOJSON === "undefined") {
+        setTimeout(initMap, 200);
+        return;
       }
 
       atualizarCamadasMapa();
@@ -706,7 +653,7 @@
       if (qtd > 20) return '#ea580c'; // Laranja forte
       if (qtd > 5)  return '#fb923c'; // Laranja médio
       if (qtd > 0)  return '#fed7aa'; // Pêssego suave
-      return '#D4DAE3';               // Cinza (sem chamados)
+      return '#D4DAE3';               // Cinza claro (sem chamados)
     }
 
     function atualizarCamadasMapa() {
@@ -715,7 +662,7 @@
       atualizarMunicipiosEscopo();
       const ESCOPO_SET = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
 
-      // Contagem de ocorrências por município nos dados filtrados
+      // Contagem de ocorrências por município
       const contagemMun = {};
       filtrados.forEach(item => {
         const cNome = getNomeCanonicoMunicipio(item.m);
@@ -728,11 +675,9 @@
       }
       markersLayerGroup.clearLayers();
 
-      const dadosGeoJson = window.GEOJSON || window.geojsonRio || window.geoJsonRio;
+      const dadosGeoJson = (typeof GEOJSON !== "undefined") ? GEOJSON : (window.GEOJSON || window.geojsonRio);
 
       if (dadosGeoJson && dadosGeoJson.features) {
-        document.getElementById("statusMapa").textContent = "Malha RJ ativa";
-
         window._geojsonLayer = L.geoJSON(dadosGeoJson, {
           style: function(feature) {
             const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
@@ -794,7 +739,7 @@
           }
         }).addTo(mapInstance);
 
-        // Enquadramento automático com base no escopo ativo
+        // Enquadramento inteligente da REDEC
         const layersFiltradas = window._geojsonLayer.getLayers().filter(l => 
           ESCOPO_SET.has(normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties.NM_MUN)))
         );
@@ -803,12 +748,12 @@
           const bounds = L.featureGroup(layersFiltradas).getBounds();
           if (bounds.isValid()) {
             currentScopeBounds = bounds;
-            mapInstance.fitBounds(bounds, { padding: [14, 14], animate: true });
+            mapInstance.fitBounds(bounds, { padding: [20, 20], animate: true });
           }
         }
       }
 
-      // Plota pontos com coordenadas exatas (limite de até 350 marcadores para fluidez)
+      // Marcadores com coordenadas geográficas exatas
       const pontosComCoords = filtrados.filter(i => i.tem_coords);
       pontosComCoords.slice(0, 350).forEach(pt => {
         const marker = L.circleMarker([pt.lat, pt.lon], {
@@ -835,7 +780,7 @@
     }
 
     /* =========================================================================
-       5. PADRONIZAÇÃO E EXTRAÇÃO DOS DADOS DA PLANILHA
+       PADRONIZAÇÃO DAS LINHAS DA PLANILHA
        ========================================================================= */
     function padronizarLinha(raw, tipo) {
       const keys = Object.keys(raw);
@@ -844,7 +789,6 @@
       if (tipo === "sisgeo") {
         const kData = findKey("Data Ocorrência") || findKey("DATA") || keys[3];
         const kMun = findKey("Município") || findKey("MUNIC") || keys[15];
-        const kRedec = findKey("REDEC") || keys[0];
         const kTipo = findKey("Tipo") || keys[5];
         const kSubtipo = findKey("Subtipo") || keys[6];
         const kCoords = findKey("Latitude/Longitude") || findKey("COORD") || keys[17];
@@ -912,13 +856,20 @@
     }
 
     /* =========================================================================
-       6. MONTAGEM DE TELA E DASHBOARDS
+       MONTAGEM DE TELA E EVENTOS
        ========================================================================= */
     window.addEventListener("DOMContentLoaded", () => {
       initMap();
       renderizarBotoesNavegacao();
       configurarEventosGerais();
       carregarModulo(abaAtiva);
+
+      document.getElementById("btnResetMap").addEventListener("click", () => {
+        redecAtiva = "ALL";
+        const sel = document.getElementById("filtroRedec");
+        if (sel) sel.value = "TODAS";
+        filtrar();
+      });
 
       setInterval(() => {
         sincronizarAba(abaAtiva, true);
@@ -1099,7 +1050,7 @@
           <div class="filter-group"><label>REDEC</label><select id="filtroRedec"><option value="TODAS">Todas</option></select></div>
           <div class="filter-group"><label>Município</label><select id="filtroMun"><option value="TODOS">Todos</option></select></div>
           <div class="filter-group"><label>Tipologia</label><select id="filtroTipo"><option value="TODAS">Todas</option><option value="desliz">Deslizamento</option><option value="inund">Inundação</option><option value="arvore">Árvore</option><option value="desabam">Desabamento</option></select></div>
-          <div class="filter-group"><label>Busca Livre</label><input type="text" id="filtroTexto" placeholder="Pesquisar..."></div>
+          <div class="filter-group"><label>Busca Livre</label><input type="text" id="filtroTexto" placeholder="Pesquisar relato..."></div>
         `;
 
         cGraficos.innerHTML = `
@@ -1156,7 +1107,7 @@
     }
 
     /* =========================================================================
-       7. FILTRAGEM E ATUALIZAÇÃO REATIVA
+       FILTRAGEM E ATUALIZAÇÃO REATIVA
        ========================================================================= */
     function filtrar() {
       const conf = CONFIG_MODULOS[abaAtiva] || { tipo: "generico", temPeriodo: false };
@@ -1260,7 +1211,7 @@
       const maxVal = sorted.length > 0 ? sorted[0][1] : 1;
 
       if (sorted.length === 0) {
-        el.innerHTML = `<div style="font-size:11px; color:var(--text-muted); padding:8px 0;">Sem registros.</div>`;
+        el.innerHTML = `<div style="font-size:10.5px; color:var(--text-muted); padding:6px 0;">Sem registros.</div>`;
         return;
       }
 
@@ -1330,40 +1281,9 @@
               <td style="text-align:center;">${i.tem_coords ? `<span class="badge badge-ativo">OK</span>` : `<span class="badge" style="background:#334155; color:#94a3b8;">-</span>`}</td>
             </tr>`;
         });
-      } else if (tipo === "eventos") {
-        thead.innerHTML = `
-          <tr>
-            <th>Data/Hora</th>
-            <th>Município</th>
-            <th style="min-width:180px;">Relato</th>
-            <th style="text-align:center;">Ocorrências</th>
-            <th style="text-align:center;">Danos</th>
-            <th style="text-align:center;">Status</th>
-          </tr>`;
-
-        itens.forEach(i => {
-          let danos = [];
-          if (i.ob > 0) danos.push(`<span style="color:var(--red); font-weight:700;">${i.ob} Óbito(s)</span>`);
-          if (i.db > 0) danos.push(`<span style="color:var(--amber); font-weight:600;">${i.db} Desab.</span>`);
-          if (i.dl > 0) danos.push(`<span style="color:var(--blue);">${i.dl} Desal.</span>`);
-
-          tbody.innerHTML += `
-            <tr>
-              <td style="white-space:nowrap; font-family:monospace; color:var(--text-muted);">
-                <div style="color:#cbd5e1; font-weight:600;">${i.d_fmt}</div>
-                <div style="font-size:10px;">${i.h}</div>
-              </td>
-              <td style="white-space:nowrap; font-weight:700; color:#fff;">${i.m}</td>
-              <td style="color:var(--text-muted); font-size:10px;">${i.desc || 'Sem relato.'}</td>
-              <td style="text-align:center; font-weight:800; color:#fff;">${i.o}</td>
-              <td style="text-align:center; font-size:10px;">${danos.length > 0 ? danos.join("<br>") : 'Sem vítimas'}</td>
-              <td style="text-align:center;">${i.dc ? `<span class="badge badge-decreto">${i.dc}</span>` : 'Rotina'}</td>
-            </tr>`;
-        });
       }
     }
 
-    // Redimensionamento inteligente
     let resizeDebounce = null;
     window.addEventListener("resize", () => {
       clearTimeout(resizeDebounce);
