@@ -12,6 +12,7 @@
       --text-main: #f1f5f9;
       --text-muted: #94a3b8;
       --orange: #f97316;
+      --orange-glow: rgba(249, 115, 22, 0.25);
       --red: #ef4444;
       --blue: #38bdf8;
       --green: #10b981;
@@ -37,19 +38,18 @@
       gap: 16px;
       padding-bottom: 20px;
       border-bottom: 1px solid var(--border-color);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .header-title-box { display: flex; align-items: center; gap: 16px; }
     
-    /* LOGO COM FALLBACK */
     .brand-logo-container {
-      width: 54px;
-      height: 54px;
+      width: 56px;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(249, 115, 22, 0.1);
-      border: 1px solid var(--border-color);
+      background: rgba(249, 115, 22, 0.12);
+      border: 1px solid var(--orange-glow);
       border-radius: 12px;
       overflow: hidden;
       flex-shrink: 0;
@@ -63,7 +63,35 @@
     .header h1 { font-size: 22px; font-weight: 800; color: #fff; }
     .header p { font-size: 13px; color: var(--text-muted); }
 
-    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    
+    /* SELETOR DE ABAS */
+    .sheet-select-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+    .sheet-select-box label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--orange);
+      text-transform: uppercase;
+    }
+    .sheet-select-box select {
+      background: transparent;
+      color: #fff;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+    .sheet-select-box select option { background: #0f172a; color: #fff; }
+
     .btn-sync {
       background: #1e293b;
       color: var(--orange);
@@ -82,7 +110,6 @@
     .btn-sync.spinning svg { animation: rot 1s linear infinite; }
     @keyframes rot { 100% { transform: rotate(360deg); } }
 
-    /* STATUS DE CONEXÃO */
     .status-pill {
       font-size: 11px;
       padding: 4px 10px;
@@ -97,6 +124,107 @@
     .dot.online { background: #10b981; box-shadow: 0 0 6px #10b981; }
     .dot.syncing { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
     .dot.offline { background: #ef4444; }
+
+    /* =========================================================================
+       BARRA DE DESTAQUE: CONTROLE DE PERÍODO TEMPORAL
+       ========================================================================= */
+    .period-highlight-bar {
+      background: linear-gradient(180deg, #1e293b 0%, #151f30 100%);
+      border: 1px solid var(--orange);
+      box-shadow: 0 4px 20px var(--orange-glow);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .period-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .period-icon {
+      background: var(--orange);
+      color: #fff;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .period-title-group h2 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .period-title-group span {
+      font-size: 12px;
+      color: var(--orange);
+      display: block;
+      font-weight: 500;
+    }
+
+    .period-inputs-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .date-input-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0b1120;
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 8px;
+    }
+    .date-input-field label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .date-input-field input[type="date"] {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      outline: none;
+      cursor: pointer;
+    }
+    .date-input-field input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.9);
+      cursor: pointer;
+    }
+
+    .preset-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .btn-preset {
+      background: #0b1120;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-preset:hover, .btn-preset.active {
+      background: var(--orange);
+      color: #fff;
+      border-color: var(--orange);
+    }
 
     /* KPIS */
     .kpi-grid {
@@ -115,7 +243,7 @@
     .kpi-val { font-size: 26px; font-weight: 800; margin: 4px 0; color: #fff; }
     .kpi-sub { font-size: 11px; color: var(--text-muted); }
 
-    /* BARRA DE FILTROS & CONTROLE DE PERÍODO */
+    /* FILTROS ADICIONAIS */
     .filter-box {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -123,9 +251,8 @@
       padding: 16px;
       margin-bottom: 24px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 14px;
-      align-items: flex-end;
     }
     .filter-group label {
       display: block;
@@ -145,26 +272,9 @@
       font-size: 12px;
       outline: none;
     }
-    .filter-group input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(0.8);
-      cursor: pointer;
-    }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--orange); }
-    .btn-reset-dates {
-      background: #0f172a;
-      color: var(--text-muted);
-      border: 1px solid var(--border-color);
-      padding: 8px 12px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: 8px;
-      cursor: pointer;
-      height: 35px;
-      transition: all 0.2s;
-    }
-    .btn-reset-dates:hover { color: #fff; border-color: var(--orange); }
 
-    /* GRÁFICOS / BARRAS */
+    /* VISUALIZAÇÃO GRÁFICA */
     .dashboard-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
@@ -203,9 +313,11 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border-color);
+      flex-wrap: wrap;
+      gap: 12px;
     }
     .table-wrapper {
-      max-height: 480px;
+      max-height: 520px;
       overflow-y: auto;
       overflow-x: auto;
     }
@@ -257,131 +369,169 @@
   <!-- CABEÇALHO -->
   <div class="header">
     <div class="header-title-box">
-      <!-- Imagem da Logo na mesma pasta com fallback -->
       <div class="brand-logo-container">
         <img id="imgLogo" src="logo.png" alt="Logo Defesa Civil" onerror="tratarErroLogo(this)">
       </div>
       <div>
-        <h1>Painel Operacional - REDECs / SEDEC-RJ</h1>
-        <p id="subHeaderStatus">Carregando informações...</p>
+        <h1>Painel Integrado SEDEC-RJ</h1>
+        <p id="subHeaderStatus">Conectado ao Google Sheets</p>
       </div>
     </div>
     
     <div class="header-actions">
+      <!-- SELETOR DINÂMICO DE ABAS DA PLANILHA -->
+      <div class="sheet-select-box">
+        <label for="selAbaPlanilha">Aba:</label>
+        <select id="selAbaPlanilha">
+          <option value="EVENTOS REDECS" selected>EVENTOS REDECS</option>
+          <option value="ALERTAS">ALERTAS</option>
+          <option value="PONTOS DE APOIO">PONTOS DE APOIO</option>
+          <option value="DANOS HUMANOS">DANOS HUMANOS</option>
+          <option value="AJUDA HUMANITÁRIA">AJUDA HUMANITÁRIA</option>
+          <option value="GRAC MAQUINÁRIO">GRAC MAQUINÁRIO</option>
+        </select>
+      </div>
+
       <div class="status-pill">
         <span class="dot" id="statusDot"></span>
         <span id="statusText">Verificando...</span>
       </div>
+
       <button class="btn-sync" id="btnSync">
         <svg id="syncIcon" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
         </svg>
-        <span>Atualizar Planilha</span>
+        <span>Sincronizar</span>
       </button>
     </div>
   </div>
 
-  <!-- CARDS DE KPIS -->
-  <div class="kpi-grid">
-    <div class="kpi-card" style="border-left: 3px solid var(--orange);">
-      <div class="kpi-label">Ocorrências Totais</div>
-      <div class="kpi-val" id="kpiOcorr">-</div>
-      <div class="kpi-sub">Total registrado no período</div>
-    </div>
-    <div class="kpi-card" style="border-left: 3px solid var(--red);">
-      <div class="kpi-label" style="color: var(--red);">Óbitos</div>
-      <div class="kpi-val" id="kpiObitos" style="color: var(--red);">-</div>
-      <div class="kpi-sub" id="kpiDesap">- desaparecidos</div>
-    </div>
-    <div class="kpi-card" style="border-left: 3px solid var(--amber);">
-      <div class="kpi-label" style="color: var(--amber);">Desabrigados</div>
-      <div class="kpi-val" id="kpiDesab" style="color: var(--amber);">-</div>
-      <div class="kpi-sub">Acolhimento público</div>
-    </div>
-    <div class="kpi-card" style="border-left: 3px solid var(--blue);">
-      <div class="kpi-label" style="color: var(--blue);">Desalojados</div>
-      <div class="kpi-val" id="kpiDesal" style="color: var(--blue);">-</div>
-      <div class="kpi-sub">Em familiares/amigos</div>
-    </div>
-    <div class="kpi-card" style="border-left: 3px solid var(--purple);">
-      <div class="kpi-label" style="color: var(--purple);">Total Afetados</div>
-      <div class="kpi-val" id="kpiAfetados" style="color: var(--purple);">-</div>
-      <div class="kpi-sub">Impacto total informado</div>
-    </div>
-    <div class="kpi-card" style="border-left: 3px solid var(--green);">
-      <div class="kpi-label" style="color: var(--green);">Prontidão / PA</div>
-      <div class="kpi-val" id="kpiRecursos" style="color: var(--green);">-</div>
-      <div class="kpi-sub" id="kpiSirenes">- sirenes</div>
-    </div>
-  </div>
-
-  <!-- FILTROS COM CONTROLE DE PERÍODO -->
-  <div class="filter-box">
-    <div class="filter-group">
-      <label>Data Inicial</label>
-      <input type="date" id="dataInicio">
-    </div>
-    <div class="filter-group">
-      <label>Data Final</label>
-      <input type="date" id="dataFim">
-    </div>
-    <div>
-      <button id="btnLimparPeriodo" class="btn-reset-dates" title="Redefinir para todo o período histórico">Todo o Período</button>
-    </div>
-    <div class="filter-group">
-      <label>Região (REDEC)</label>
-      <select id="selRedec">
-        <option value="TODAS">Todas as REDECs</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label>Município</label>
-      <select id="selMunicipio">
-        <option value="TODOS">Todos os Municípios</option>
-      </select>
-    </div>
-    <div class="filter-group">
-      <label>Tipologia Predominante</label>
-      <select id="selTipo">
-        <option value="TODAS">Todas as Tipologias</option>
-        <option value="desliz">Deslizamento de Encosta</option>
-        <option value="inund">Inundação / Alagamento / Enxurrada</option>
-        <option value="arvore">Queda de Árvore</option>
-        <option value="desabam">Desabamento / Queda de Estrutura</option>
-        <option value="danos">Com Danos Humanos (Vítimas)</option>
-      </select>
-    </div>
-    <div class="filter-group" style="grid-column: span 2;">
-      <label>Busca Textual</label>
-      <input type="text" id="inputBusca" placeholder="Pesquisar relato, rua ou bairro...">
-    </div>
-  </div>
-
-  <!-- BARRAS DINÂMICAS -->
-  <div class="dashboard-grid">
-    <div class="chart-panel">
-      <div class="chart-header">
-        <div class="chart-title">Ocorrências por REDEC</div>
-        <span style="font-size: 11px; color: var(--text-muted);">Volume Operacional no Período</span>
+  <!-- BARRA DE DESTAQUE: CONTROLE DE PERÍODO -->
+  <div class="period-highlight-bar" id="barraPeriodo">
+    <div class="period-title-group">
+      <div class="period-icon">
+        <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
       </div>
-      <div id="containerBarrasRedec"></div>
+      <div>
+        <h2>Filtro de Período Temporal</h2>
+        <span id="periodoResumoLabel">Selecione o intervalo de datas para atualizar os dados</span>
+      </div>
     </div>
 
-    <div class="chart-panel">
-      <div class="chart-header">
-        <div class="chart-title">Desalojados por REDEC</div>
-        <span style="font-size: 11px; color: var(--text-muted);">Acolhimento e Demanda</span>
+    <div class="period-inputs-wrap">
+      <div class="date-input-field">
+        <label>De</label>
+        <input type="date" id="dataInicio">
       </div>
-      <div id="containerBarrasDanos"></div>
+      <div class="date-input-field">
+        <label>Até</label>
+        <input type="date" id="dataFim">
+      </div>
+      <div class="preset-buttons">
+        <button class="btn-preset" data-preset="hoje">Hoje</button>
+        <button class="btn-preset" data-preset="7d">7 Dias</button>
+        <button class="btn-preset" data-preset="30d">30 Dias</button>
+        <button class="btn-preset" data-preset="mes">Mês Atual</button>
+        <button class="btn-preset active" data-preset="tudo">Todo o Período</button>
+      </div>
     </div>
   </div>
 
-  <!-- TABELA DE EVENTOS -->
+  <!-- SEÇÃO OPERACIONAL DEDICADA À ABA EVENTOS REDECS -->
+  <div id="secaoEventosRedecs">
+    <!-- CARDS DE KPIS -->
+    <div class="kpi-grid">
+      <div class="kpi-card" style="border-left: 3px solid var(--orange);">
+        <div class="kpi-label">Ocorrências Totais</div>
+        <div class="kpi-val" id="kpiOcorr">-</div>
+        <div class="kpi-sub">Total no período</div>
+      </div>
+      <div class="kpi-card" style="border-left: 3px solid var(--red);">
+        <div class="kpi-label" style="color: var(--red);">Óbitos</div>
+        <div class="kpi-val" id="kpiObitos" style="color: var(--red);">-</div>
+        <div class="kpi-sub" id="kpiDesap">- desaparecidos</div>
+      </div>
+      <div class="kpi-card" style="border-left: 3px solid var(--amber);">
+        <div class="kpi-label" style="color: var(--amber);">Desabrigados</div>
+        <div class="kpi-val" id="kpiDesab" style="color: var(--amber);">-</div>
+        <div class="kpi-sub">Acolhimento público</div>
+      </div>
+      <div class="kpi-card" style="border-left: 3px solid var(--blue);">
+        <div class="kpi-label" style="color: var(--blue);">Desalojados</div>
+        <div class="kpi-val" id="kpiDesal" style="color: var(--blue);">-</div>
+        <div class="kpi-sub">Em familiares/amigos</div>
+      </div>
+      <div class="kpi-card" style="border-left: 3px solid var(--purple);">
+        <div class="kpi-label" style="color: var(--purple);">Total Afetados</div>
+        <div class="kpi-val" id="kpiAfetados" style="color: var(--purple);">-</div>
+        <div class="kpi-sub">Impacto total informado</div>
+      </div>
+      <div class="kpi-card" style="border-left: 3px solid var(--green);">
+        <div class="kpi-label" style="color: var(--green);">Prontidão / PA</div>
+        <div class="kpi-val" id="kpiRecursos" style="color: var(--green);">-</div>
+        <div class="kpi-sub" id="kpiSirenes">- sirenes</div>
+      </div>
+    </div>
+
+    <!-- FILTROS COMPLEMENTARES -->
+    <div class="filter-box">
+      <div class="filter-group">
+        <label>Região (REDEC)</label>
+        <select id="selRedec">
+          <option value="TODAS">Todas as REDECs</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Município</label>
+        <select id="selMunicipio">
+          <option value="TODOS">Todos os Municípios</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Tipologia Predominante</label>
+        <select id="selTipo">
+          <option value="TODAS">Todas as Tipologias</option>
+          <option value="desliz">Deslizamento de Encosta</option>
+          <option value="inund">Inundação / Alagamento / Enxurrada</option>
+          <option value="arvore">Queda de Árvore</option>
+          <option value="desabam">Desabamento / Queda de Estrutura</option>
+          <option value="danos">Com Danos Humanos (Vítimas)</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label>Busca Textual</label>
+        <input type="text" id="inputBusca" placeholder="Pesquisar relato, rua ou bairro...">
+      </div>
+    </div>
+
+    <!-- BARRAS DINÂMICAS -->
+    <div class="dashboard-grid">
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div class="chart-title">Ocorrências por REDEC</div>
+          <span style="font-size: 11px; color: var(--text-muted);">Volume no Período</span>
+        </div>
+        <div id="containerBarrasRedec"></div>
+      </div>
+
+      <div class="chart-panel">
+        <div class="chart-header">
+          <div class="chart-title">Desalojados por REDEC</div>
+          <span style="font-size: 11px; color: var(--text-muted);">Demanda de Acolhimento</span>
+        </div>
+        <div id="containerBarrasDanos"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL TABULAR UNIVERSAL (Atende tanto EVENTOS REDECS quanto qualquer outra aba) -->
   <div class="table-panel">
     <div class="table-top">
       <div>
-        <div class="chart-title" style="margin-bottom: 2px;">Ocorrências Detalhadas da Planilha</div>
-        <div id="tabelaContador" style="font-size: 11px; color: var(--text-muted);">Carregando...</div>
+        <div class="chart-title" id="tabelaTituloAba" style="margin-bottom: 2px;">Ocorrências Detalhadas - EVENTOS REDECS</div>
+        <div id="tabelaContador" style="font-size: 11px; color: var(--text-muted);">Carregando registros...</div>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <button id="btnAnt" class="pagination-btn">Anterior</button>
@@ -390,18 +540,8 @@
       </div>
     </div>
     <div class="table-wrapper">
-      <table>
-        <thead>
-          <tr>
-            <th>Data/Hora</th>
-            <th>REDEC</th>
-            <th>Município</th>
-            <th style="min-width: 280px;">Tipologia / Relato</th>
-            <th style="text-align: center;">Ocorrências</th>
-            <th style="text-align: center;">Danos Humanos</th>
-            <th style="text-align: center;">Ações / Decretos</th>
-          </tr>
-        </thead>
+      <table id="tabelaPrincipal">
+        <thead id="tabelaCabecalho"></thead>
         <tbody id="tabelaCorpo"></tbody>
       </table>
     </div>
@@ -409,26 +549,25 @@
 
   <script>
     // =========================================================================
-    // URL CONFIGURADA DO SEU GOOGLE APPS SCRIPT
+    // URL CONFIGURADA DA SUA PLANILHA GOOGLE APPS SCRIPT
     // =========================================================================
-    const CONFIG_URL_PLANILHA = "https://script.google.com/macros/s/AKfycbwC7sf80Z2HSS2PewAnM8T_AAOA9rn8KNGEA_pVoA0xcevecSisJrBPQi472V65Qo0l/exec"; 
-    
-    const INTERVALO_AUTO_SYNC_MS = 5 * 60 * 1000; // 5 minutos
+    const CONFIG_URL_PLANILHA = "https://script.google.com/macros/s/AKfycbwC7sf80Z2HSS2PewAnM8T_AAOA9rn8KNGEA_pVoA0xcevecSisJrBPQi472V65Qo0l/exec";
+    const INTERVALO_AUTO_SYNC_MS = 5 * 60 * 1000;
 
+    let abaAtual = "EVENTOS REDECS";
     let todosRegistros = [];
     let filtrados = [];
+    let colunasGenericas = [];
     let pagina = 1;
     const porPagina = 8;
 
-    // Fallback inteligente caso a logo tenha extensão diferente (.png, .svg, .jpg)
+    // Fallback de imagem da Logo
     let tentativaLogo = 0;
     function tratarErroLogo(img) {
       const extensoes = ['logo.svg', 'logo.jpg', 'logo.jpeg'];
       if (tentativaLogo < extensoes.length) {
-        img.src = extensoes[tentativaLogo];
-        tentativaLogo++;
+        img.src = extensoes[tentativaLogo++];
       } else {
-        // Se não encontrar nenhum arquivo, renderiza o escudo padrão
         img.parentElement.innerHTML = `
           <svg width="28" height="28" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24">
             <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -437,38 +576,53 @@
       }
     }
 
-    // FORMATAÇÃO E PARSE DE DATAS
+    // =========================================================================
+    // PARSER RIGOROSO DE DATAS (Suporta ISO, DD/MM/AAAA, texto sujo e carimbos)
+    // =========================================================================
     function normalizarDataParaISO(dataBruta) {
       if (!dataBruta) return '';
-      const str = String(dataBruta).trim();
-      
-      // Formato YYYY-MM-DD
-      if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-        return str.substring(0, 10);
+      let str = String(dataBruta).replace(/[`´']/g, '').trim();
+
+      // Padrão 1: ISO 2026-02-01 ou 2026-02-01T...
+      const mIso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+      if (mIso) {
+        const y = mIso[1];
+        const m = mIso[2].padStart(2, '0');
+        const d = mIso[3].padStart(2, '0');
+        return `${y}-${m}-${d}`;
       }
-      // Formato DD/MM/YYYY
-      if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
-        const partes = str.substring(0, 10).split('/');
-        return `${partes[2]}-${partes[1]}-${partes[0]}`;
+
+      // Padrão 2: Brasileiro DD/MM/AAAA ou DD/MM/AA
+      const mBr = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+      if (mBr) {
+        const d = mBr[1].padStart(2, '0');
+        const m = mBr[2].padStart(2, '0');
+        let y = mBr[3];
+        if (y.length === 2) y = "20" + y;
+        return `${y}-${m}-${d}`;
       }
+
+      // Padrão 3: Erro de digitação como 06/032026
+      const mErro = str.match(/(\d{2})\/(\d{2})(\d{4})/);
+      if (mErro) {
+        return `${mErro[3]}-${mErro[2]}-${mErro[1]}`;
+      }
+
       return '';
     }
 
     function formatarParaDDMMAAAA(dataISO) {
       if (!dataISO) return '-';
-      const partes = dataISO.split('-');
-      if (partes.length === 3) {
-        return `${partes[2]}/${partes[1]}/${partes[0]}`;
-      }
-      return dataISO;
+      const p = dataISO.split('-');
+      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dataISO;
     }
 
-    function formatarHora(horaBruta) {
-      if (!horaBruta) return '';
-      const str = String(horaBruta).trim();
+    function formatarHora(h) {
+      if (!h) return '';
+      const str = String(h).trim();
       if (str.includes("T")) {
-        const hora = str.split("T")[1];
-        return hora ? hora.substring(0, 5) : '';
+        const p = str.split("T")[1];
+        return p ? p.substring(0, 5) : '';
       }
       return str.substring(0, 5);
     }
@@ -484,10 +638,12 @@
       return (t || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
     }
 
-    function extrairObjetoPadronizado(raw) {
+    // EXTRAÇÃO DE LINHA CONFORME O TIPO DE ABA
+    function extrairObjeto(raw, isRedecs) {
       const keys = Object.keys(raw);
-      const findKey = (term) => keys.find(k => k.includes(term));
+      if (!isRedecs) return raw; // Aba genérica
 
+      const findKey = (term) => keys.find(k => k.includes(term));
       const kData = findKey("DATA");
       const kHora = findKey("HORA");
       const kMun = findKey("MUNIC");
@@ -507,17 +663,14 @@
       const kSirene = findKey("SIRENE - MOBILIZA");
       const kDec = findKey("DECRETO");
 
-      const redecRaw = raw[kRedec] ? String(raw[kRedec]).trim().replace('–', '-') : 'ESTADUAL / GERAL';
-      const munRaw = raw[kMun] ? String(raw[kMun]).trim() : 'MUNICÍPIO NÃO INFORMADO';
-
       const dataISO = normalizarDataParaISO(raw[kData]);
 
       return {
-        d_iso: dataISO,                                 // Para filtros e ordenação interna
-        d_formatada: formatarParaDDMMAAAA(dataISO),      // Para exibição na tabela em DD/MM/AAAA
+        d_iso: dataISO,
+        d_formatada: formatarParaDDMMAAAA(dataISO),
         h: formatarHora(raw[kHora]),
-        m: munRaw,
-        r: redecRaw,
+        m: raw[kMun] ? String(raw[kMun]).trim() : 'MUNICÍPIO NÃO INFORMADO',
+        r: raw[kRedec] ? String(raw[kRedec]).trim().replace('–', '-') : 'ESTADUAL / GERAL',
         c: raw[kDesc] ? String(raw[kDesc]).trim() : '',
         o: parseNum(raw[kOcorr]),
         ob: parseNum(raw[kObitos]),
@@ -535,29 +688,138 @@
       };
     }
 
+    // INICIALIZAÇÃO E EVENTOS
     window.addEventListener("DOMContentLoaded", () => {
       configurarEventos();
       carregarDadosComCache();
-      
+      carregarListaDeAbasRemotas();
+
       setInterval(() => {
         consultarPlanilhaRemota(true);
       }, INTERVALO_AUTO_SYNC_MS);
     });
 
+    function configurarEventos() {
+      document.getElementById("btnSync").addEventListener("click", () => consultarPlanilhaRemota(false));
+      
+      // Mudança de Aba
+      document.getElementById("selAbaPlanilha").addEventListener("change", (e) => {
+        abaAtual = e.target.value;
+        document.getElementById("tabelaTituloAba").textContent = "Conteúdo da Aba - " + abaAtual;
+        carregarDadosComCache();
+      });
+
+      // Seletor de Datas (dispara no input e no change)
+      const dIni = document.getElementById("dataInicio");
+      const dFim = document.getElementById("dataFim");
+      dIni.addEventListener("input", () => { desmarcarPresets(); filtrar(); });
+      dFim.addEventListener("input", () => { desmarcarPresets(); filtrar(); });
+      dIni.addEventListener("change", () => { desmarcarPresets(); filtrar(); });
+      dFim.addEventListener("change", () => { desmarcarPresets(); filtrar(); });
+
+      // Botões de Atalho do Período
+      document.querySelectorAll(".btn-preset").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".btn-preset").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          aplicarPresetPeriodo(btn.dataset.preset);
+        });
+      });
+
+      // Filtros Complementares
+      document.getElementById("selRedec").addEventListener("change", filtrar);
+      document.getElementById("selMunicipio").addEventListener("change", filtrar);
+      document.getElementById("selTipo").addEventListener("change", filtrar);
+      document.getElementById("inputBusca").addEventListener("input", filtrar);
+
+      // Paginação
+      document.getElementById("btnAnt").addEventListener("click", () => {
+        if (pagina > 1) { pagina--; renderizarTabela(); }
+      });
+      document.getElementById("btnProx").addEventListener("click", () => {
+        const totalPags = Math.ceil(filtrados.length / porPagina) || 1;
+        if (pagina < totalPags) { pagina++; renderizarTabela(); }
+      });
+    }
+
+    function desmarcarPresets() {
+      document.querySelectorAll(".btn-preset").forEach(b => b.classList.remove("active"));
+    }
+
+    function aplicarPresetPeriodo(tipo) {
+      const dIni = document.getElementById("dataInicio");
+      const dFim = document.getElementById("dataFim");
+      const hoje = new Date();
+      const formatIso = (d) => d.toISOString().substring(0, 10);
+
+      if (tipo === "hoje") {
+        dIni.value = formatIso(hoje);
+        dFim.value = formatIso(hoje);
+      } else if (tipo === "7d") {
+        const pass = new Date();
+        pass.setDate(hoje.getDate() - 7);
+        dIni.value = formatIso(pass);
+        dFim.value = formatIso(hoje);
+      } else if (tipo === "30d") {
+        const pass = new Date();
+        pass.setDate(hoje.getDate() - 30);
+        dIni.value = formatIso(pass);
+        dFim.value = formatIso(hoje);
+      } else if (tipo === "mes") {
+        const primDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        dIni.value = formatIso(primDia);
+        dFim.value = formatIso(hoje);
+      } else if (tipo === "tudo") {
+        definirLimitesDatasIniciais();
+      }
+      filtrar();
+    }
+
+    // LISTAR ABAS DISPONÍVEIS AUTOMATICAMENTE
+    async function carregarListaDeAbasRemotas() {
+      try {
+        const urlFetch = CONFIG_URL_PLANILHA + "?listarAbas=true";
+        const resp = await fetch(urlFetch);
+        const json = await resp.json();
+        if (json && json.abas && json.abas.length > 0) {
+          const sel = document.getElementById("selAbaPlanilha");
+          sel.innerHTML = "";
+          json.abas.forEach(nome => {
+            const opt = document.createElement("option");
+            opt.value = nome;
+            opt.textContent = nome;
+            if (nome === abaAtual) opt.selected = true;
+            sel.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        // Usa as opções estáticas já presentes no HTML caso a rota listarAbas não esteja configurada ainda
+      }
+    }
+
+    // CARREGAMENTO E CACHE
     function carregarDadosComCache() {
-      const cacheData = localStorage.getItem("redecs_data_cache");
-      const cacheTime = localStorage.getItem("redecs_data_time");
+      const cacheKey = "redecs_cache_" + abaAtual;
+      const timeKey = "redecs_time_" + abaAtual;
+      const cacheData = localStorage.getItem(cacheKey);
+      const cacheTime = localStorage.getItem(timeKey);
+
+      const isRedecs = (abaAtual === "EVENTOS REDECS");
+      document.getElementById("secaoEventosRedecs").style.display = isRedecs ? "block" : "none";
 
       if (cacheData) {
         try {
-          const parsed = JSON.parse(cacheData);
-          todosRegistros = parsed;
-          atualizarStatusConexao("online", `Dados em Cache (${formatarDataHora(cacheTime)})`);
-          definirLimitesDatasIniciais();
-          popularDropdowns();
+          todosRegistros = JSON.parse(cacheData);
+          atualizarStatusConexao("online", `Aba ${abaAtual} (Cache de ${formatarDataHora(cacheTime)})`);
+          if (isRedecs) {
+            definirLimitesDatasIniciais();
+            popularDropdowns();
+          } else if (todosRegistros.length > 0) {
+            colunasGenericas = Object.keys(todosRegistros[0]);
+          }
           filtrar();
         } catch (e) {
-          console.error("Falha ao recuperar cache:", e);
+          console.error("Erro no cache:", e);
         }
       }
 
@@ -568,76 +830,68 @@
       const syncBtn = document.getElementById("btnSync");
       if (!isBackground) {
         syncBtn.classList.add("spinning");
-        atualizarStatusConexao("syncing", "Consultando Planilha...");
+        atualizarStatusConexao("syncing", `Lendo ${abaAtual}...`);
       }
 
       try {
-        const urlFetch = CONFIG_URL_PLANILHA + (CONFIG_URL_PLANILHA.includes("?") ? "&" : "?") + "t=" + new Date().getTime();
+        const isRedecs = (abaAtual === "EVENTOS REDECS");
+        const urlFetch = `${CONFIG_URL_PLANILHA}?aba=${encodeURIComponent(abaAtual)}&t=${Date.now()}`;
         const resp = await fetch(urlFetch);
         const json = await resp.json();
 
         if (json && json.data) {
-          const dadosPadronizados = json.data.map(extrairObjetoPadronizado);
-          const cacheAnterior = localStorage.getItem("redecs_data_cache");
-          const novoJsonString = JSON.stringify(dadosPadronizados);
+          const dadosPadronizados = json.data.map(r => extrairObjeto(r, isRedecs));
+          const cacheKey = "redecs_cache_" + abaAtual;
+          const timeKey = "redecs_time_" + abaAtual;
 
-          if (cacheAnterior !== novoJsonString || todosRegistros.length === 0) {
-            todosRegistros = dadosPadronizados;
-            localStorage.setItem("redecs_data_cache", novoJsonString);
-            localStorage.setItem("redecs_data_time", new Date().toISOString());
-            
+          todosRegistros = dadosPadronizados;
+          localStorage.setItem(cacheKey, JSON.stringify(dadosPadronizados));
+          localStorage.setItem(timeKey, new Date().toISOString());
+
+          if (isRedecs) {
             definirLimitesDatasIniciais();
             popularDropdowns();
-            filtrar();
-            atualizarStatusConexao("online", `Atualizado (${dadosPadronizados.length} registros)`);
-          } else {
-            atualizarStatusConexao("online", `Sincronizado (Sem novas alterações)`);
+          } else if (dadosPadronizados.length > 0) {
+            colunasGenericas = Object.keys(dadosPadronizados[0]);
           }
+
+          filtrar();
+          atualizarStatusConexao("online", `${abaAtual} atualizada (${dadosPadronizados.length} linhas)`);
         }
       } catch (err) {
-        console.error("Erro na sincronização:", err);
-        if (todosRegistros.length > 0) {
-          atualizarStatusConexao("syncing", "Offline (Exibindo Cache)");
-        } else {
-          atualizarStatusConexao("offline", "Falha ao conectar à Planilha");
-        }
+        console.error("Erro ao sincronizar:", err);
+        atualizarStatusConexao(todosRegistros.length > 0 ? "syncing" : "offline", "Erro de Conexão");
       } finally {
         syncBtn.classList.remove("spinning");
       }
     }
 
     function definirLimitesDatasIniciais() {
-      const datasValidas = todosRegistros.map(r => r.d_iso).filter(d => d);
-      if (datasValidas.length === 0) return;
+      const datas = todosRegistros.map(r => r.d_iso).filter(Boolean).sort();
+      if (datas.length === 0) return;
 
-      datasValidas.sort();
-      const minData = datasValidas[0];
-      const maxData = datasValidas[datasValidas.length - 1];
+      const minData = datas[0];
+      const maxData = datas[datas.length - 1];
 
-      const inputIni = document.getElementById("dataInicio");
-      const inputFim = document.getElementById("dataFim");
+      const dIni = document.getElementById("dataInicio");
+      const dFim = document.getElementById("dataFim");
 
-      if (!inputIni.value) inputIni.value = minData;
-      if (!inputFim.value) inputFim.value = maxData;
-
-      inputIni.min = minData;
-      inputIni.max = maxData;
-      inputFim.min = minData;
-      inputFim.max = maxData;
+      dIni.min = minData; dIni.max = maxData;
+      dFim.min = minData; dFim.max = maxData;
+      dIni.value = minData;
+      dFim.value = maxData;
     }
 
     function atualizarStatusConexao(tipo, texto) {
-      const dot = document.getElementById("statusDot");
-      const txt = document.getElementById("statusText");
-      dot.className = "dot " + tipo;
-      txt.textContent = texto;
+      document.getElementById("statusDot").className = "dot " + tipo;
+      document.getElementById("statusText").textContent = texto;
       document.getElementById("subHeaderStatus").textContent = texto;
     }
 
     function formatarDataHora(isoString) {
       if (!isoString) return "-";
       const d = new Date(isoString);
-      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " de " + d.toLocaleDateString();
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + " - " + d.toLocaleDateString();
     }
 
     function popularDropdowns() {
@@ -648,8 +902,7 @@
       selRedec.innerHTML = '<option value="TODAS">Todas as REDECs</option>';
       redecs.forEach(r => {
         const opt = document.createElement("option");
-        opt.value = r;
-        opt.textContent = r;
+        opt.value = r; opt.textContent = r;
         selRedec.appendChild(opt);
       });
 
@@ -657,39 +910,16 @@
       selMun.innerHTML = '<option value="TODOS">Todos os Municípios</option>';
       municipios.forEach(m => {
         const opt = document.createElement("option");
-        opt.value = m;
-        opt.textContent = m;
+        opt.value = m; opt.textContent = m;
         selMun.appendChild(opt);
       });
     }
 
-    function configurarEventos() {
-      document.getElementById("btnSync").addEventListener("click", () => consultarPlanilhaRemota(false));
-      document.getElementById("dataInicio").addEventListener("change", filtrar);
-      document.getElementById("dataFim").addEventListener("change", filtrar);
-      
-      document.getElementById("btnLimparPeriodo").addEventListener("click", () => {
-        document.getElementById("dataInicio").value = "";
-        document.getElementById("dataFim").value = "";
-        definirLimitesDatasIniciais();
-        filtrar();
-      });
-
-      document.getElementById("selRedec").addEventListener("change", filtrar);
-      document.getElementById("selMunicipio").addEventListener("change", filtrar);
-      document.getElementById("selTipo").addEventListener("change", filtrar);
-      document.getElementById("inputBusca").addEventListener("input", filtrar);
-
-      document.getElementById("btnAnt").addEventListener("click", () => {
-        if (pagina > 1) { pagina--; renderizarTabela(); }
-      });
-      document.getElementById("btnProx").addEventListener("click", () => {
-        const totalPags = Math.ceil(filtrados.length / porPagina) || 1;
-        if (pagina < totalPags) { pagina++; renderizarTabela(); }
-      });
-    }
-
+    // =========================================================================
+    // FILTRAGEM INTELIGENTE
+    // =========================================================================
     function filtrar() {
+      const isRedecs = (abaAtual === "EVENTOS REDECS");
       const dtIni = document.getElementById("dataInicio").value;
       const dtFim = document.getElementById("dataFim").value;
       const redec = document.getElementById("selRedec").value;
@@ -697,79 +927,83 @@
       const tipo = document.getElementById("selTipo").value;
       const texto = normalizarTexto(document.getElementById("inputBusca").value);
 
-      filtrados = todosRegistros.filter(item => {
-        // Filtro de Período
-        if (dtIni && item.d_iso && item.d_iso < dtIni) return false;
-        if (dtFim && item.d_iso && item.d_iso > dtFim) return false;
+      if (isRedecs) {
+        filtrados = todosRegistros.filter(item => {
+          // Filtro por Data
+          if (dtIni && item.d_iso && item.d_iso < dtIni) return false;
+          if (dtFim && item.d_iso && item.d_iso > dtFim) return false;
 
-        // Filtro Geográfico
-        const matchRedec = (redec === "TODAS") || (item.r === redec);
-        const matchMun = (mun === "TODOS") || (item.m === mun);
-        if (!matchRedec || !matchMun) return false;
-        
-        // Filtro de Tipologia
-        let matchTipo = true;
-        if (tipo === "desliz") matchTipo = item.dz > 0;
-        else if (tipo === "inund") matchTipo = item.in > 0;
-        else if (tipo === "arvore") matchTipo = item.ar > 0;
-        else if (tipo === "desabam") matchTipo = item.es > 0;
-        else if (tipo === "danos") matchTipo = (item.ob > 0 || item.db > 0 || item.dl > 0);
-        if (!matchTipo) return false;
+          // Filtro por REDEC / Município
+          if (redec !== "TODAS" && item.r !== redec) return false;
+          if (mun !== "TODOS" && item.m !== mun) return false;
 
-        // Busca Textual
-        if (texto) {
-          const comp = normalizarTexto(`${item.r} ${item.m} ${item.c} ${item.dc}`);
-          if (!comp.includes(texto)) return false;
-        }
+          // Filtro por Tipologia
+          if (tipo === "desliz" && !(item.dz > 0)) return false;
+          if (tipo === "inund" && !(item.in > 0)) return false;
+          if (tipo === "arvore" && !(item.ar > 0)) return false;
+          if (tipo === "desabam" && !(item.es > 0)) return false;
+          if (tipo === "danos" && !(item.ob > 0 || item.db > 0 || item.dl > 0)) return false;
 
-        return true;
-      });
+          // Busca Livre
+          if (texto) {
+            const comp = normalizarTexto(`${item.r} ${item.m} ${item.c} ${item.dc}`);
+            if (!comp.includes(texto)) return false;
+          }
+
+          return true;
+        });
+
+        // Atualiza texto do resumo do período
+        const total = filtrados.length;
+        const resTxt = (dtIni && dtFim) 
+          ? `Período ativo: ${formatarParaDDMMAAAA(dtIni)} até ${formatarParaDDMMAAAA(dtFim)} (${total} ocorrências)` 
+          : `${total} ocorrências computadas`;
+        document.getElementById("periodoResumoLabel").textContent = resTxt;
+
+        atualizarKPIs();
+        renderizarBarras();
+      } else {
+        // Filtragem para abas genéricas
+        filtrados = todosRegistros.filter(row => {
+          if (!texto) return true;
+          return Object.values(row).some(v => normalizarTexto(v).includes(texto));
+        });
+      }
 
       pagina = 1;
-      atualizarKPIs();
-      renderizarBarras();
       renderizarTabela();
     }
 
     function atualizarKPIs() {
       const base = filtrados;
-      const totalOcorr = base.reduce((a, b) => a + (b.o || 0), 0);
-      const totalObitos = base.reduce((a, b) => a + (b.ob || 0), 0);
-      const totalDesap = base.reduce((a, b) => a + (b.dp || 0), 0);
-      const totalDesab = base.reduce((a, b) => a + (b.db || 0), 0);
-      const totalDesal = base.reduce((a, b) => a + (b.dl || 0), 0);
-      const totalAfet = base.reduce((a, b) => a + (b.af || 0), 0);
-      const totalPA = base.reduce((a, b) => a + (b.pa || 0), 0);
-      const totalSirenes = base.reduce((a, b) => a + (b.sr || 0), 0);
+      const sum = (fn) => base.reduce((acc, b) => acc + (fn(b) || 0), 0);
 
-      document.getElementById("kpiOcorr").textContent = Number(totalOcorr).toLocaleString('pt-BR');
-      document.getElementById("kpiObitos").textContent = Number(totalObitos).toLocaleString('pt-BR');
-      document.getElementById("kpiDesab").textContent = Number(totalDesab).toLocaleString('pt-BR');
-      document.getElementById("kpiDesal").textContent = Number(totalDesal).toLocaleString('pt-BR');
-      document.getElementById("kpiAfetados").textContent = Number(totalAfet).toLocaleString('pt-BR');
-      document.getElementById("kpiRecursos").textContent = `${totalPA} PA`;
-      document.getElementById("kpiSirenes").textContent = `${totalSirenes} sirenes`;
-      document.getElementById("kpiDesap").textContent = `${totalDesap} desaparecidos`;
+      document.getElementById("kpiOcorr").textContent = Number(sum(b => b.o)).toLocaleString('pt-BR');
+      document.getElementById("kpiObitos").textContent = Number(sum(b => b.ob)).toLocaleString('pt-BR');
+      document.getElementById("kpiDesab").textContent = Number(sum(b => b.db)).toLocaleString('pt-BR');
+      document.getElementById("kpiDesal").textContent = Number(sum(b => b.dl)).toLocaleString('pt-BR');
+      document.getElementById("kpiAfetados").textContent = Number(sum(b => b.af)).toLocaleString('pt-BR');
+      document.getElementById("kpiRecursos").textContent = `${sum(b => b.pa)} PA`;
+      document.getElementById("kpiSirenes").textContent = `${sum(b => b.sr)} sirenes`;
+      document.getElementById("kpiDesap").textContent = `${sum(b => b.dp)} desaparecidos`;
     }
 
     function renderizarBarras() {
-      const redecMap = {};
-      const danosMap = {};
-
+      const redecMap = {}, danosMap = {};
       filtrados.forEach(item => {
         if (!item.r || item.r.includes("ESTADUAL")) return;
         redecMap[item.r] = (redecMap[item.r] || 0) + (item.o || 1);
         danosMap[item.r] = (danosMap[item.r] || 0) + (item.dl || 0);
       });
 
-      // 1. Ocorrências
+      // Ocorrências
       const cOcorr = document.getElementById("containerBarrasRedec");
       cOcorr.innerHTML = "";
       const sortOcorr = Object.entries(redecMap).sort((a, b) => b[1] - a[1]);
       const maxOcorr = sortOcorr.length > 0 ? sortOcorr[0][1] : 1;
 
       if (sortOcorr.length === 0) {
-        cOcorr.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:10px 0;">Sem ocorrências registradas no período selecionado.</div>`;
+        cOcorr.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:10px 0;">Nenhuma ocorrência no período.</div>`;
       } else {
         sortOcorr.forEach(([redec, val]) => {
           const perc = Math.round((val / maxOcorr) * 100);
@@ -779,60 +1013,126 @@
                 <span style="font-weight: 600; color: #cbd5e1;">${redec.replace("REDEC ", "R-")}</span>
                 <span style="font-weight: 700; color: #fff;">${val}</span>
               </div>
-              <div class="bar-track">
-                <div class="bar-fill" style="width: ${perc}%; background: var(--orange);"></div>
-              </div>
-            </div>
-          `;
+              <div class="bar-track"><div class="bar-fill" style="width: ${perc}%; background: var(--orange);"></div></div>
+            </div>`;
         });
       }
 
-      // 2. Desalojados
+      // Desalojados
       const cDanos = document.getElementById("containerBarrasDanos");
       cDanos.innerHTML = "";
       const sortDanos = Object.entries(danosMap).sort((a, b) => b[1] - a[1]);
       const maxDanos = sortDanos.length > 0 ? sortDanos[0][1] : 1;
 
       if (sortDanos.length === 0) {
-        cDanos.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:10px 0;">Sem desalojados no período selecionado.</div>`;
+        cDanos.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:10px 0;">Nenhum desalojado no período.</div>`;
       } else {
         sortDanos.slice(0, 7).forEach(([redec, val]) => {
-          const perc = Math.round((val / (maxDanos || 1)) * 100);
+          const perc = Math.round((val / maxDanos) * 100);
           cDanos.innerHTML += `
             <div class="bar-row">
               <div class="bar-label-line">
                 <span style="font-weight: 600; color: #cbd5e1;">${redec.replace("REDEC ", "R-")}</span>
                 <span style="font-weight: 700; color: var(--blue);">${Number(val).toLocaleString('pt-BR')} pessoas</span>
               </div>
-              <div class="bar-track">
-                <div class="bar-fill" style="width: ${perc}%; background: var(--blue);"></div>
-              </div>
-            </div>
-          `;
+              <div class="bar-track"><div class="bar-fill" style="width: ${perc}%; background: var(--blue);"></div></div>
+            </div>`;
         });
       }
     }
 
+    // RENDERIZADOR UNIVERSAL DE TABELAS
     function renderizarTabela() {
+      const isRedecs = (abaAtual === "EVENTOS REDECS");
+      const thead = document.getElementById("tabelaCabecalho");
       const tbody = document.getElementById("tabelaCorpo");
+      thead.innerHTML = "";
       tbody.innerHTML = "";
 
       const total = filtrados.length;
       const totalPags = Math.ceil(total / porPagina) || 1;
-      document.getElementById("tabelaContador").textContent = `${total} registro(s) listados`;
+      document.getElementById("tabelaContador").textContent = `${total} registro(s) encontrado(s)`;
       document.getElementById("pageTxt").textContent = `Pág. ${pagina} / ${totalPags}`;
       document.getElementById("btnAnt").disabled = (pagina <= 1);
       document.getElementById("btnProx").disabled = (pagina >= totalPags);
 
       if (total === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Nenhum dado encontrado para o período ou critérios informados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Nenhum registro encontrado para este filtro.</td></tr>`;
         return;
       }
 
       const inicio = (pagina - 1) * porPagina;
       const paginaItens = filtrados.slice(inicio, inicio + porPagina);
 
-      paginaItens.forEach(item => {
-        let badgesTipo = "";
-        if (item.dz > 0) badgesTipo += `<span class="badge badge-desliz">${item.dz} Deslizamento</span>`;
-        if (item.in > 0) badgesTipo += `<span class="badge badge-inund">${item.in} Inundação</span>`;
+      if (isRedecs) {
+        // Cabeçalho da Aba EVENTOS REDECS
+        thead.innerHTML = `
+          <tr>
+            <th>Data/Hora</th>
+            <th>REDEC</th>
+            <th>Município</th>
+            <th style="min-width: 280px;">Tipologia / Relato</th>
+            <th style="text-align: center;">Ocorrências</th>
+            <th style="text-align: center;">Danos Humanos</th>
+            <th style="text-align: center;">Ações / Decretos</th>
+          </tr>
+        `;
+
+        paginaItens.forEach(item => {
+          let badgesTipo = "";
+          if (item.dz > 0) badgesTipo += `<span class="badge badge-desliz">${item.dz} Deslizamento</span>`;
+          if (item.in > 0) badgesTipo += `<span class="badge badge-inund">${item.in} Inundação</span>`;
+          if (item.ar > 0) badgesTipo += `<span class="badge badge-arvore">${item.ar} Árvore</span>`;
+          if (item.es > 0) badgesTipo += `<span class="badge badge-desabam">${item.es} Desabamento</span>`;
+
+          let danos = [];
+          if (item.ob > 0) danos.push(`<span style="color:var(--red); font-weight:700;">${item.ob} Óbito(s)</span>`);
+          if (item.db > 0) danos.push(`<span style="color:var(--amber); font-weight:600;">${item.db} Desabrig.</span>`);
+          if (item.dl > 0) danos.push(`<span style="color:var(--blue);">${item.dl} Desaloj.</span>`);
+          const resumoDanos = danos.length > 0 ? danos.join("<br>") : `<span style="color:var(--text-muted);">Sem vítimas</span>`;
+
+          let acoes = [];
+          if (item.dc) acoes.push(`<span class="badge badge-decreto">${item.dc}</span>`);
+          if (item.pa > 0) acoes.push(`<span class="badge badge-arvore">${item.pa} P. Apoio</span>`);
+          if (acoes.length === 0) acoes.push(`<span style="color:var(--text-muted); font-size:11px;">Monitoramento</span>`);
+
+          tbody.innerHTML += `
+            <tr>
+              <td style="white-space: nowrap; font-family: monospace; color: var(--text-muted);">
+                <div style="color: #cbd5e1; font-weight: 600;">${item.d_formatada}</div>
+                <div style="font-size: 11px;">${item.h || ''}</div>
+              </td>
+              <td style="white-space: nowrap; font-weight: 500;">${item.r}</td>
+              <td style="white-space: nowrap; font-weight: 700; color: #fff;">${item.m}</td>
+              <td>
+                <div style="margin-bottom: 4px;">${badgesTipo}</div>
+                <div style="color: var(--text-muted); font-size: 11px;">${item.c || 'Relato não informado.'}</div>
+              </td>
+              <td style="text-align: center; font-weight: 800; color: #fff; font-size: 14px;">${item.o}</td>
+              <td style="text-align: center; font-size: 11px;">${resumoDanos}</td>
+              <td style="text-align: center;">${acoes.join("")}</td>
+            </tr>
+          `;
+        });
+      } else {
+        // Tabela universal para qualquer outra aba existente ou futura
+        const colunas = colunasGenericas.slice(0, 8); // exibe até 8 colunas principais
+        let trHead = "<tr>";
+        colunas.forEach(c => trHead += `<th>${c}</th>`);
+        trHead += "</tr>";
+        thead.innerHTML = trHead;
+
+        paginaItens.forEach(row => {
+          let trBody = "<tr>";
+          colunas.forEach(c => {
+            let val = row[c] !== undefined && row[c] !== null ? String(row[c]) : "-";
+            trBody += `<td>${val}</td>`;
+          });
+          trBody += "</tr>";
+          tbody.innerHTML += trBody;
+        });
+      }
+    }
+  </script>
+</body>
+</html>
