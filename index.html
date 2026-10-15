@@ -5,11 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Integrado de Defesa Civil - SEDEC-RJ</title>
   
-  <!-- Leaflet CSS e JS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Dependências do Leaflet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
-  <!-- Seu GeoJSON do Estado do Rio de Janeiro -->
+  <!-- Arquivo mapa.js (com a variável GEOJSON) na mesma pasta -->
   <script src="mapa.js"></script>
 
   <style>
@@ -33,7 +33,7 @@
       background-color: var(--bg-dark);
       color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      padding: 16px 20px;
+      padding: 14px 18px;
       line-height: 1.4;
     }
 
@@ -43,46 +43,46 @@
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 16px;
-      padding-bottom: 16px;
+      gap: 14px;
+      padding-bottom: 14px;
       border-bottom: 1px solid var(--border-color);
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .header-title-box { display: flex; align-items: center; gap: 14px; }
     
     .brand-logo-container {
-      width: 52px;
-      height: 52px;
+      width: 48px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: center;
       background: rgba(249, 115, 22, 0.12);
       border: 1px solid var(--orange-glow);
-      border-radius: 12px;
+      border-radius: 10px;
       overflow: hidden;
       flex-shrink: 0;
     }
     .brand-logo-container img { width: 100%; height: 100%; object-fit: contain; }
 
-    .header h1 { font-size: 20px; font-weight: 800; color: #fff; }
+    .header h1 { font-size: 19px; font-weight: 800; color: #fff; }
     .header p { font-size: 12px; color: var(--text-muted); }
 
     .header-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
     
     .nav-tabs {
       display: flex;
-      gap: 5px;
+      gap: 4px;
       background: #0f172a;
       padding: 4px;
-      border-radius: 10px;
+      border-radius: 8px;
       border: 1px solid var(--border-color);
     }
     .tab-btn {
       background: transparent;
       color: var(--text-muted);
       border: none;
-      padding: 7px 12px;
-      border-radius: 7px;
+      padding: 6px 12px;
+      border-radius: 6px;
       font-size: 11px;
       font-weight: 700;
       cursor: pointer;
@@ -99,10 +99,10 @@
       background: #1e293b;
       color: var(--orange);
       border: 1px solid #334155;
-      padding: 7px 14px;
+      padding: 6px 12px;
       font-size: 12px;
       font-weight: 600;
-      border-radius: 8px;
+      border-radius: 6px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -115,7 +115,7 @@
 
     .status-pill {
       font-size: 11px;
-      padding: 4px 10px;
+      padding: 4px 8px;
       border-radius: 20px;
       background: #0f172a;
       border: 1px solid var(--border-color);
@@ -132,18 +132,17 @@
     .period-highlight-bar {
       background: linear-gradient(180deg, #1e293b 0%, #151f30 100%);
       border: 1px solid var(--orange);
-      box-shadow: 0 4px 16px var(--orange-glow);
-      border-radius: 12px;
-      padding: 10px 16px;
-      margin-bottom: 16px;
+      box-shadow: 0 4px 14px var(--orange-glow);
+      border-radius: 10px;
+      padding: 8px 14px;
+      margin-bottom: 14px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: 10px;
     }
-    .period-title-group { display: flex; align-items: center; gap: 8px; }
-    .period-title-group h2 { font-size: 13px; font-weight: 800; color: #fff; text-transform: uppercase; }
+    .period-title-group h2 { font-size: 12px; font-weight: 800; color: #fff; text-transform: uppercase; }
     .period-title-group span { font-size: 11px; color: var(--orange); font-weight: 500; }
 
     .period-inputs-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -161,33 +160,31 @@
       background: transparent;
       border: none;
       color: #fff;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       outline: none;
       cursor: pointer;
     }
     .date-input-field input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.9); cursor: pointer; }
 
-    .preset-buttons { display: flex; flex-wrap: wrap; gap: 5px; }
+    .preset-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
     .btn-preset {
       background: #0b1120;
       border: 1px solid var(--border-color);
       color: var(--text-muted);
-      padding: 5px 8px;
-      font-size: 11px;
+      padding: 4px 8px;
+      font-size: 10px;
       font-weight: 700;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
     }
     .btn-preset:hover, .btn-preset.active { background: var(--orange); color: #fff; border-color: var(--orange); }
 
-    /* =========================================================================
-       LAYOUT EM 2 COLUNAS: DADOS À ESQUERDA E MAPA À DIREITA
-       ========================================================================= */
+    /* LAYOUT DIVIDIDO EM DUAS COLUNAS */
     .main-workspace {
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
-      gap: 20px;
+      gap: 16px;
       align-items: start;
     }
 
@@ -195,35 +192,38 @@
       .main-workspace {
         grid-template-columns: 1fr;
       }
+      .col-right {
+        position: static !important;
+      }
     }
 
-    .col-left { display: flex; flex-direction: column; gap: 18px; }
-    .col-right { position: sticky; top: 16px; }
+    .col-left { display: flex; flex-direction: column; gap: 14px; }
+    .col-right { position: sticky; top: 14px; }
 
     /* KPIS GERAIS */
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
     }
     .kpi-card {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
+      border-radius: 8px;
       padding: 12px;
     }
     .kpi-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px; }
-    .kpi-val { font-size: 22px; font-weight: 800; margin: 2px 0; color: #fff; }
+    .kpi-val { font-size: 20px; font-weight: 800; margin: 2px 0; color: #fff; }
     .kpi-sub { font-size: 10px; color: var(--text-muted); }
 
     /* FILTROS */
     .filter-box {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 14px;
+      border-radius: 8px;
+      padding: 12px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
       gap: 10px;
     }
     .filter-group label {
@@ -239,9 +239,9 @@
       background: #0f172a;
       border: 1px solid var(--border-color);
       color: #fff;
-      padding: 7px 9px;
+      padding: 6px 8px;
       border-radius: 6px;
-      font-size: 12px;
+      font-size: 11px;
       outline: none;
     }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--orange); }
@@ -250,93 +250,121 @@
     .map-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 14px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      border-radius: 10px;
+      padding: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
     }
     .map-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .map-header .chart-title { font-size: 12px; font-weight: 800; text-transform: uppercase; color: #fff; }
 
-    #mapaContainer {
+    #map {
+      height: 580px;
       width: 100%;
-      height: 600px;
-      border-radius: 8px;
-      background: #d4dadc; /* Cor base idêntica ao Esri Gray Canvas */
-      border: 1px solid var(--border-color);
+      min-width: 100%;
+      border-radius: 6px;
+      background: #EEF1F4;
     }
 
+    /* ESTILOS ESPECÍFICOS DO SEU MAPA (TOOLTIP E POPUP) */
+    .mun-tooltip {
+      background: rgba(22, 36, 63, 0.94);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-family: sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      pointer-events: none;
+    }
+    .leaflet-popup-content-wrapper {
+      border-radius: 6px;
+      font-family: sans-serif;
+      font-size: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+    .leaflet-popup-content { margin: 8px 12px; line-height: 1.4; }
+    .popup-nome { font-weight: 700; font-size: 13px; margin-bottom: 2px; color: #16243F; }
+    .popup-redec { font-family: monospace; font-size: 10.5px; color: #5B6B82; margin-bottom: 4px; }
+
     .map-legend {
+      background: white;
+      border: 1px solid #C7CDD6;
+      border-radius: 5px;
+      padding: 6px 10px;
+      font-family: sans-serif;
+      font-size: 10.5px;
+      color: #334155;
+      margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
       gap: 10px;
-      margin-top: 10px;
-      font-size: 10px;
-      color: var(--text-muted);
     }
-    .legend-item { display: flex; align-items: center; gap: 4px; }
-    .legend-color { width: 12px; height: 12px; border-radius: 3px; }
+    .map-legend-item { display: flex; align-items: center; gap: 5px; }
+    .map-legend-swatch { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, 0.15); }
 
     /* GRÁFICOS */
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
     }
     .chart-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 14px;
+      border-radius: 8px;
+      padding: 12px;
     }
-    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
     .chart-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #fff; }
 
-    .bar-row { margin-bottom: 8px; }
-    .bar-label-line { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 2px; }
-    .bar-track { background: #0f172a; height: 8px; border-radius: 4px; overflow: hidden; display: flex; }
+    .bar-row { margin-bottom: 6px; }
+    .bar-label-line { display: flex; justify-content: space-between; font-size: 10.5px; margin-bottom: 2px; }
+    .bar-track { background: #0f172a; height: 7px; border-radius: 4px; overflow: hidden; display: flex; }
     .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
 
     /* TABELA */
     .table-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
+      border-radius: 8px;
       overflow: hidden;
     }
     .table-top {
-      padding: 12px 14px;
+      padding: 10px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border-color);
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
     }
-    .table-wrapper { max-height: 420px; overflow: auto; }
+    .table-wrapper { max-height: 380px; overflow: auto; }
     table { width: 100%; border-collapse: collapse; text-align: left; font-size: 11px; }
     th {
       background: #0f172a;
-      padding: 10px 12px;
-      font-size: 10px;
+      padding: 8px 10px;
+      font-size: 9.5px;
       text-transform: uppercase;
       color: var(--text-muted);
       position: sticky;
       top: 0;
       z-index: 5;
     }
-    td { padding: 9px 12px; border-bottom: 1px solid #33415560; }
+    td { padding: 8px 10px; border-bottom: 1px solid #33415560; }
     tr:hover td { background: rgba(255, 255, 255, 0.02); }
 
     .badge {
       display: inline-block;
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 2px 5px;
+      border-radius: 3px;
       font-size: 9px;
       font-weight: 700;
       text-transform: uppercase;
@@ -349,15 +377,14 @@
     .badge-desabam { background: #451a03; color: #fbbf24; border: 1px solid #78350f; }
     .badge-decreto { background: #3b0764; color: #c084fc; border: 1px solid #581c87; }
     .badge-ativo { background: #064e3b; color: #6ee7b7; border: 1px solid #047857; }
-    .badge-expirado { background: #450a0a; color: #fca5a5; border: 1px solid #991b1b; }
 
     .pagination-btn {
       background: #0f172a;
       border: 1px solid var(--border-color);
       color: var(--text-main);
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 10px;
       cursor: pointer;
     }
     .pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -386,7 +413,7 @@
       </div>
 
       <button class="btn-sync" id="btnSync">
-        <svg id="syncIcon" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <svg id="syncIcon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
           <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
         </svg>
         <span>Sincronizar</span>
@@ -425,13 +452,8 @@
     
     <!-- COLUNA DA ESQUERDA: KPIS, FILTROS, GRÁFICOS E TABELA -->
     <div class="col-left">
-      <!-- CARDS DE KPIS -->
       <div class="kpi-grid" id="containerKPIs"></div>
-
-      <!-- FILTROS COMPLEMENTARES -->
       <div class="filter-box" id="containerFiltros"></div>
-
-      <!-- GRÁFICOS / BARRAS -->
       <div class="dashboard-grid" id="containerGraficos"></div>
 
       <!-- TABELA OPERACIONAL -->
@@ -456,21 +478,23 @@
       </div>
     </div>
 
-    <!-- COLUNA DA DIREITA: MAPA CARTOGRÁFICO FIXADO -->
+    <!-- COLUNA DA DIREITA: MAPA FIXADO -->
     <div class="col-right">
       <div class="map-panel" id="painelMapa">
         <div class="map-header">
-          <div class="chart-title">Mapa do Estado do Rio de Janeiro</div>
+          <div class="chart-title">Mapa Territorial do Rio de Janeiro</div>
           <span style="font-size: 10px; color: var(--text-muted);" id="statusMapa">Carregando malha...</span>
         </div>
-        <div id="mapaContainer"></div>
+        
+        <div id="map"></div>
+
         <div class="map-legend">
-          <div class="legend-item"><div class="legend-color" style="background: #94a3b8;"></div> Sem chamados</div>
-          <div class="legend-item"><div class="legend-color" style="background: #fcd34d;"></div> 1 - 5</div>
-          <div class="legend-item"><div class="legend-color" style="background: #f97316;"></div> 6 - 20</div>
-          <div class="legend-item"><div class="legend-color" style="background: #ea580c;"></div> 21 - 50</div>
-          <div class="legend-item"><div class="legend-color" style="background: #dc2626;"></div> > 50</div>
-          <div class="legend-item">🔴 Ponto com coordenadas</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#D4DAE3;"></div> Sem chamados</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#fed7aa;"></div> 1 - 5</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#fb923c;"></div> 6 - 20</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#ea580c;"></div> 21 - 50</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#b91c1c;"></div> > 50</div>
+          <div class="map-legend-item">🔴 Ponto com coordenadas</div>
         </div>
       </div>
     </div>
@@ -478,44 +502,76 @@
   </div>
 
   <script>
-    // =========================================================================
-    // CONFIGURAÇÃO DOS DASHBOARDS
-    // =========================================================================
+    /* =========================================================================
+       1. MAPEAMENTO OFICIAL DOS 92 MUNICÍPIOS DO RJ -> REDECs
+       ========================================================================= */
+    const MAPA_REDECS_RJ = {
+      "Angra dos Reis": "REDEC 4 - Costa Verde", "Aperibé": "REDEC 11 - Noroeste", "Araruama": "REDEC 9 - Baixada Litorânea",
+      "Areal": "REDEC 7 - Serrana I", "Armação dos Búzios": "REDEC 9 - Baixada Litorânea", "Arraial do Cabo": "REDEC 9 - Baixada Litorânea",
+      "Barra do Piraí": "REDEC 5 - Sul I", "Barra Mansa": "REDEC 5 - Sul I", "Belford Roxo": "REDEC 2 - Baixada Fluminense",
+      "Bom Jardim": "REDEC 8 - Serrana II", "Bom Jesus do Itabapoana": "REDEC 11 - Noroeste", "Cabo Frio": "REDEC 9 - Baixada Litorânea",
+      "Cachoeiras de Macacu": "REDEC 3 - Metropolitana", "Cambuci": "REDEC 11 - Noroeste", "Campos dos Goytacazes": "REDEC 10 - Norte",
+      "Cantagalo": "REDEC 8 - Serrana II", "Carapebus": "REDEC 10 - Norte", "Cardoso Moreira": "REDEC 11 - Noroeste",
+      "Carmo": "REDEC 7 - Serrana I", "Casimiro de Abreu": "REDEC 9 - Baixada Litorânea", "Comendador Levy Gasparian": "REDEC 5 - Sul I",
+      "Conceição de Macabu": "REDEC 10 - Norte", "Cordeiro": "REDEC 8 - Serrana II", "Duas Barras": "REDEC 8 - Serrana II",
+      "Duque de Caxias": "REDEC 2 - Baixada Fluminense", "Engenheiro Paulo de Frontin": "REDEC 6 - Sul II", "Guapimirim": "REDEC 2 - Baixada Fluminense",
+      "Iguaba Grande": "REDEC 9 - Baixada Litorânea", "Itaboraí": "REDEC 3 - Metropolitana", "Itaguaí": "REDEC 6 - Sul II",
+      "Italva": "REDEC 11 - Noroeste", "Itaocara": "REDEC 11 - Noroeste", "Itaperuna": "REDEC 11 - Noroeste",
+      "Itatiaia": "REDEC 5 - Sul I", "Japeri": "REDEC 6 - Sul II", "Laje do Muriaé": "REDEC 11 - Noroeste",
+      "Macaé": "REDEC 9 - Baixada Litorânea", "Macuco": "REDEC 8 - Serrana II", "Magé": "REDEC 2 - Baixada Fluminense",
+      "Mangaratiba": "REDEC 4 - Costa Verde", "Maricá": "REDEC 3 - Metropolitana", "Mendes": "REDEC 6 - Sul II",
+      "Mesquita": "REDEC 2 - Baixada Fluminense", "Miguel Pereira": "REDEC 6 - Sul II", "Miracema": "REDEC 11 - Noroeste",
+      "Natividade": "REDEC 11 - Noroeste", "Nilópolis": "REDEC 2 - Baixada Fluminense", "Niterói": "REDEC 3 - Metropolitana",
+      "Nova Friburgo": "REDEC 8 - Serrana II", "Nova Iguaçu": "REDEC 2 - Baixada Fluminense", "Paracambi": "REDEC 6 - Sul II",
+      "Paraty": "REDEC 4 - Costa Verde", "Paraíba do Sul": "REDEC 5 - Sul I", "Paty do Alferes": "REDEC 5 - Sul I",
+      "Petrópolis": "REDEC 7 - Serrana I", "Pinheiral": "REDEC 5 - Sul I", "Piraí": "REDEC 6 - Sul II",
+      "Porciúncula": "REDEC 11 - Noroeste", "Porto Real": "REDEC 5 - Sul I", "Quatis": "REDEC 5 - Sul I",
+      "Queimados": "REDEC 6 - Sul II", "Quissamã": "REDEC 10 - Norte", "Resende": "REDEC 5 - Sul I",
+      "Rio Bonito": "REDEC 9 - Baixada Litorânea", "Rio Claro": "REDEC 6 - Sul II", "Rio das Flores": "REDEC 5 - Sul I",
+      "Rio das Ostras": "REDEC 9 - Baixada Litorânea", "Rio de Janeiro": "REDEC 1 - Capital", "Santa Maria Madalena": "REDEC 8 - Serrana II",
+      "Santo Antônio de Pádua": "REDEC 11 - Noroeste", "Sapucaia": "REDEC 7 - Serrana I", "Saquarema": "REDEC 9 - Baixada Litorânea",
+      "Seropédica": "REDEC 6 - Sul II", "Silva Jardim": "REDEC 9 - Baixada Litorânea", "Sumidouro": "REDEC 7 - Serrana I",
+      "São Fidélis": "REDEC 11 - Noroeste", "São Francisco de Itabapoana": "REDEC 10 - Norte", "São Gonçalo": "REDEC 3 - Metropolitana",
+      "São José de Ubá": "REDEC 11 - Noroeste", "São José do Vale do Rio Preto": "REDEC 7 - Serrana I", "São João da Barra": "REDEC 10 - Norte",
+      "São João de Meriti": "REDEC 2 - Baixada Fluminense", "São Pedro da Aldeia": "REDEC 9 - Baixada Litorânea", "São Sebastião do Alto": "REDEC 8 - Serrana II",
+      "Tanguá": "REDEC 3 - Metropolitana", "Teresópolis": "REDEC 7 - Serrana I", "Trajano de Moraes": "REDEC 8 - Serrana II",
+      "Três Rios": "REDEC 5 - Sul I", "Valença": "REDEC 5 - Sul I", "Varre-Sai": "REDEC 11 - Noroeste",
+      "Vassouras": "REDEC 5 - Sul I", "Volta Redonda": "REDEC 5 - Sul I"
+    };
+
+    /* =========================================================================
+       2. CONFIGURAÇÃO DOS MÓDULOS DE DASHBOARD
+       ========================================================================= */
     const CONFIG_MODULOS = {
       "SISGEO": {
         ativo: true,
         rotulo: "SISGEO (Ocorrências)",
         tipo: "sisgeo",
-        temPeriodo: true,
-        temMapa: true
+        temPeriodo: true
       },
       "EVENTOS REDECS": {
         ativo: true,
         rotulo: "Eventos Operacionais",
         tipo: "eventos",
-        temPeriodo: true,
-        temMapa: true
+        temPeriodo: true
       },
       "DECRETAÇÃO": {
         ativo: true,
         rotulo: "Decretos de Emergência",
         tipo: "decretacao",
-        temPeriodo: false,
-        temMapa: true
+        temPeriodo: false
       },
       "PONTOS DE APOIO": {
         ativo: true,
         rotulo: "Pontos de Apoio",
         tipo: "pontos_apoio",
-        temPeriodo: true,
-        temMapa: true
+        temPeriodo: true
       },
       "AJUDA HUMANITÁRIA": {
         ativo: true,
         rotulo: "Ajuda Humanitária",
         tipo: "ajuda_humanitaria",
-        temPeriodo: true,
-        temMapa: false
+        temPeriodo: true
       },
       "LISTAS_AUX": { ativo: false, backend: true },
       "REDECS_E_MUNICIPIOS": { ativo: false, backend: true },
@@ -531,10 +587,13 @@
     let pagina = 1;
     const porPagina = 8;
 
-    // Instâncias do Leaflet
-    let leafletMap = null;
-    let geojsonLayer = null;
+    /* Variáveis do Mapa */
+    let mapInstance = null;
     let markersLayerGroup = null;
+    let currentScopeBounds = null;
+    let popupCloseTimer = null;
+    let redecAtiva = "ALL";
+    let MUNICIPIOS_ESCOPO = [];
 
     let tentativaLogo = 0;
     function tratarErroLogo(img) {
@@ -543,9 +602,40 @@
         img.src = exts[tentativaLogo++];
       } else {
         img.parentElement.innerHTML = `
-          <svg width="26" height="26" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24">
+          <svg width="24" height="24" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24">
             <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
           </svg>`;
+      }
+    }
+
+    /* =========================================================================
+       3. FUNÇÕES CANÔNICAS DE NORMALIZAÇÃO
+       ========================================================================= */
+    function normalizarTexto(s) {
+      return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    }
+
+    function getNomeCanonicoMunicipio(nomeMun) {
+      if (MAPA_REDECS_RJ[nomeMun]) return nomeMun;
+      const nKey = normalizarTexto(nomeMun);
+      for (const k of Object.keys(MAPA_REDECS_RJ)) {
+        if (normalizarTexto(k) === nKey) return k;
+      }
+      return String(nomeMun || "").trim();
+    }
+
+    function getRedecDoMunicipio(nomeMun) {
+      const canonico = getNomeCanonicoMunicipio(nomeMun);
+      return MAPA_REDECS_RJ[canonico] || "Outra REDEC";
+    }
+
+    function atualizarMunicipiosEscopo() {
+      if (redecAtiva === "ALL" || redecAtiva === "TODAS") {
+        MUNICIPIOS_ESCOPO = Object.keys(MAPA_REDECS_RJ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+      } else {
+        MUNICIPIOS_ESCOPO = Object.keys(MAPA_REDECS_RJ)
+          .filter(m => normalizarTexto(MAPA_REDECS_RJ[m]) === normalizarTexto(redecAtiva))
+          .sort((a, b) => a.localeCompare(b, "pt-BR"));
       }
     }
 
@@ -574,13 +664,258 @@
       return isNaN(n) ? 0 : n;
     }
 
-    function normalizarTexto(t) {
-      return (t || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+    /* =========================================================================
+       4. INICIALIZAÇÃO DO MAPA ESRI CANVAS
+       ========================================================================= */
+    function initMap() {
+      if (!mapInstance) {
+        mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false }).setView([-22.35, -42.7], 7.5);
+        
+        // Camada base Esri Light Gray Canvas (a mesma do seu projeto)
+        L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+          attribution: "Tiles &copy; Esri &mdash; SEDEC RJ",
+          maxZoom: 14
+        }).addTo(mapInstance);
+
+        markersLayerGroup = L.layerGroup().addTo(mapInstance);
+
+        // Suave Zoom Out ao fechar Popup
+        mapInstance.on("popupclose", function() {
+          popupCloseTimer = setTimeout(function() {
+            let hasOpen = false;
+            mapInstance.eachLayer(l => { if (l instanceof L.Popup) hasOpen = true; });
+            if (!hasOpen && currentScopeBounds && currentScopeBounds.isValid()) {
+              mapInstance.fitBounds(currentScopeBounds, { padding: [14, 14], animate: true, duration: 0.6 });
+            }
+          }, 80);
+        });
+
+        mapInstance.on("popupopen", function() {
+          if (popupCloseTimer) {
+            clearTimeout(popupCloseTimer);
+            popupCloseTimer = null;
+          }
+        });
+      }
+
+      atualizarCamadasMapa();
     }
 
-    // INICIALIZAÇÃO
+    function obterCorPorQuantidade(qtd) {
+      if (qtd > 50) return '#b91c1c'; // Vermelho escuro
+      if (qtd > 20) return '#ea580c'; // Laranja forte
+      if (qtd > 5)  return '#fb923c'; // Laranja médio
+      if (qtd > 0)  return '#fed7aa'; // Pêssego suave
+      return '#D4DAE3';               // Cinza (sem chamados)
+    }
+
+    function atualizarCamadasMapa() {
+      if (!mapInstance) return;
+
+      atualizarMunicipiosEscopo();
+      const ESCOPO_SET = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
+
+      // Contagem de ocorrências por município nos dados filtrados
+      const contagemMun = {};
+      filtrados.forEach(item => {
+        const cNome = getNomeCanonicoMunicipio(item.m);
+        const norm = normalizarTexto(cNome);
+        if (norm) contagemMun[norm] = (contagemMun[norm] || 0) + (item.o || 1);
+      });
+
+      if (window._geojsonLayer) {
+        mapInstance.removeLayer(window._geojsonLayer);
+      }
+      markersLayerGroup.clearLayers();
+
+      const dadosGeoJson = window.GEOJSON || window.geojsonRio || window.geoJsonRio;
+
+      if (dadosGeoJson && dadosGeoJson.features) {
+        document.getElementById("statusMapa").textContent = "Malha RJ ativa";
+
+        window._geojsonLayer = L.geoJSON(dadosGeoJson, {
+          style: function(feature) {
+            const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
+            const isNoEscopo = ESCOPO_SET.has(normalizarTexto(canonico));
+            const qtd = contagemMun[normalizarTexto(canonico)] || 0;
+
+            if (isNoEscopo) {
+              return {
+                fillColor: obterCorPorQuantidade(qtd),
+                fillOpacity: qtd > 0 ? 0.85 : 0.45,
+                color: "#ffffff",
+                weight: qtd > 0 ? 1.5 : 1,
+                opacity: 1
+              };
+            }
+            return {
+              fillColor: "#E2E8F0",
+              fillOpacity: 0.25,
+              color: "#CBD5E1",
+              weight: 0.6,
+              opacity: 0.8
+            };
+          },
+          onEachFeature: function(feature, layer) {
+            const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
+            const isNoEscopo = ESCOPO_SET.has(normalizarTexto(canonico));
+            const redecNome = getRedecDoMunicipio(canonico);
+            const qtd = contagemMun[normalizarTexto(canonico)] || 0;
+
+            layer.bindTooltip(`<b>${canonico}</b><br><span style="font-size:10px;opacity:.85;">${redecNome}</span><br><b>${qtd}</b> ocorrência(s)`, {
+              sticky: true,
+              direction: "top",
+              offset: [0, -10],
+              className: "mun-tooltip",
+              opacity: 1
+            });
+
+            layer.on({
+              mouseover(e) {
+                e.target.setStyle({ fillOpacity: 0.95, weight: 2.5, color: "#16243F" });
+              },
+              mouseout(e) {
+                window._geojsonLayer.resetStyle(e.target);
+                e.target.closeTooltip();
+              },
+              click(e) {
+                e.target.closeTooltip();
+                const popupContent = `
+                  <div class="popup-nome">${canonico}</div>
+                  <div class="popup-redec">${redecNome}</div>
+                  <div style="font-size:12px;color:#16243F;margin-top:4px;">
+                    <strong>${qtd}</strong> ocorrência(s) registrada(s) no período.
+                  </div>
+                `;
+                e.target.bindPopup(popupContent).openPopup();
+                mapInstance.fitBounds(e.target.getBounds(), { padding: [35, 35], animate: true, duration: 0.6 });
+              }
+            });
+          }
+        }).addTo(mapInstance);
+
+        // Enquadramento automático com base no escopo ativo
+        const layersFiltradas = window._geojsonLayer.getLayers().filter(l => 
+          ESCOPO_SET.has(normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties.NM_MUN)))
+        );
+
+        if (layersFiltradas.length > 0) {
+          const bounds = L.featureGroup(layersFiltradas).getBounds();
+          if (bounds.isValid()) {
+            currentScopeBounds = bounds;
+            mapInstance.fitBounds(bounds, { padding: [14, 14], animate: true });
+          }
+        }
+      }
+
+      // Plota pontos com coordenadas exatas (limite de até 350 marcadores para fluidez)
+      const pontosComCoords = filtrados.filter(i => i.tem_coords);
+      pontosComCoords.slice(0, 350).forEach(pt => {
+        const marker = L.circleMarker([pt.lat, pt.lon], {
+          radius: 4.5,
+          fillColor: '#b91c1c',
+          color: '#ffffff',
+          weight: 1.5,
+          opacity: 1,
+          fillOpacity: 0.95
+        });
+
+        marker.bindPopup(`
+          <div style="font-size:11.5px; line-height:1.4;">
+            <strong style="color:#ea580c;">${pt.tipo || 'Ocorrência'}</strong><br>
+            <strong>${pt.m}</strong> - ${pt.bairro || ''}<br>
+            <span style="color:#64748b; font-size:11px;">${pt.endereco || ''}</span><br>
+            <span style="color:#0284c7; font-size:10px;">Vtr: ${pt.viatura || '-'} | ${pt.d_fmt} ${pt.h}</span>
+          </div>
+        `);
+        markersLayerGroup.addLayer(marker);
+      });
+
+      setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 60);
+    }
+
+    /* =========================================================================
+       5. PADRONIZAÇÃO E EXTRAÇÃO DOS DADOS DA PLANILHA
+       ========================================================================= */
+    function padronizarLinha(raw, tipo) {
+      const keys = Object.keys(raw);
+      const findKey = (term) => keys.find(k => k.includes(term));
+
+      if (tipo === "sisgeo") {
+        const kData = findKey("Data Ocorrência") || findKey("DATA") || keys[3];
+        const kMun = findKey("Município") || findKey("MUNIC") || keys[15];
+        const kRedec = findKey("REDEC") || keys[0];
+        const kTipo = findKey("Tipo") || keys[5];
+        const kSubtipo = findKey("Subtipo") || keys[6];
+        const kCoords = findKey("Latitude/Longitude") || findKey("COORD") || keys[17];
+        const kEnd = findKey("Endereço") || keys[8];
+        const kBairro = findKey("Bairro") || keys[19];
+        const kViatura = findKey("Viatura") || keys[7];
+
+        const dIso = normalizarDataParaISO(raw[kData]);
+        const munBruto = raw[kMun] ? String(raw[kMun]).trim() : 'NÃO INFORMADO';
+        const canonico = getNomeCanonicoMunicipio(munBruto);
+        
+        let lat = null, lon = null;
+        const coordsStr = String(raw[kCoords] || '').trim();
+        if (coordsStr.includes(',')) {
+          const parts = coordsStr.split(',');
+          const pLat = parseFloat(parts[0].trim());
+          const pLon = parseFloat(parts[1].trim());
+          if (!isNaN(pLat) && !isNaN(pLon) && pLat < 0 && pLon < 0) {
+            lat = pLat; lon = pLon;
+          }
+        }
+
+        return {
+          d_iso: dIso,
+          d_fmt: formatarParaDDMMAAAA(dIso),
+          h: raw[kData] ? String(raw[kData]).substring(11, 16) : '',
+          m: canonico,
+          r: getRedecDoMunicipio(canonico),
+          tipo: raw[kTipo] ? String(raw[kTipo]).trim() : 'Outros',
+          subtipo: raw[kSubtipo] ? String(raw[kSubtipo]).trim() : '',
+          endereco: raw[kEnd] ? String(raw[kEnd]).trim() : '',
+          bairro: raw[kBairro] ? String(raw[kBairro]).trim() : '',
+          viatura: raw[kViatura] ? String(raw[kViatura]).trim() : '',
+          lat: lat, lon: lon,
+          tem_coords: (lat !== null && lon !== null)
+        };
+      } else if (tipo === "eventos") {
+        const dIso = normalizarDataParaISO(raw[findKey("DATA")]);
+        const munBruto = raw[findKey("MUNIC")] ? String(raw[findKey("MUNIC")]).trim() : 'NÃO INFORMADO';
+        const canonico = getNomeCanonicoMunicipio(munBruto);
+
+        return {
+          d_iso: dIso,
+          d_fmt: formatarParaDDMMAAAA(dIso),
+          h: raw[findKey("HORA")] ? String(raw[findKey("HORA")]).substring(0, 5) : '',
+          m: canonico,
+          r: getRedecDoMunicipio(canonico),
+          desc: raw[findKey("DESCRI")] ? String(raw[findKey("DESCRI")]).trim() : '',
+          o: parseNum(raw[findKey("SOMAT")]),
+          ob: parseNum(raw[findKey("ÓBITOS")] || raw[findKey("OBITOS")]),
+          db: parseNum(raw[findKey("DESABRIG")]),
+          dl: parseNum(raw[findKey("DESALOJ")]),
+          af: parseNum(raw[findKey("AFETADOS")]),
+          dz: parseNum(raw[findKey("DESLIZ")]),
+          in: parseNum(raw[findKey("INUNDA")]),
+          ar: parseNum(raw[findKey("ÁRVORE")]),
+          es: parseNum(raw[findKey("DESABAMENTO")]),
+          pa: parseNum(raw[findKey("PONTOS DE APOIO")]),
+          sr: parseNum(raw[findKey("SIRENE - MOBILIZA")]),
+          dc: raw[findKey("DECRETO")] ? String(raw[findKey("DECRETO")]).trim() : '',
+          lat: null, lon: null, tem_coords: false
+        };
+      }
+      return raw;
+    }
+
+    /* =========================================================================
+       6. MONTAGEM DE TELA E DASHBOARDS
+       ========================================================================= */
     window.addEventListener("DOMContentLoaded", () => {
-      inicializarMapaEsri();
+      initMap();
       renderizarBotoesNavegacao();
       configurarEventosGerais();
       carregarModulo(abaAtiva);
@@ -589,29 +924,6 @@
         sincronizarAba(abaAtiva, true);
       }, INTERVALO_AUTO_SYNC_MS);
     });
-
-    // =========================================================================
-    // INICIALIZAÇÃO COM ESRI GRAY CANVAS (SEM API KEY / MESMO DO SEU PROJETO)
-    // =========================================================================
-    function inicializarMapaEsri() {
-      leafletMap = L.map('mapaContainer', { zoomControl: true }).setView([-22.35, -42.7], 7.5);
-
-      // TileLayer idêntico ao do seu print funcional
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; SEDEC RJ',
-        maxZoom: 16
-      }).addTo(leafletMap);
-
-      markersLayerGroup = L.layerGroup().addTo(leafletMap);
-
-      // Carrega o GeoJSON usando a variável correta GEOJSON do seu mapa.js
-      const dadosGeoJson = window.GEOJSON || window.geojsonRio || window.geoJsonRio;
-      if (dadosGeoJson) {
-        document.getElementById("statusMapa").textContent = "Malha RJ Carregada";
-      } else {
-        document.getElementById("statusMapa").textContent = "Arquivo mapa.js não encontrado";
-      }
-    }
 
     function renderizarBotoesNavegacao() {
       const container = document.getElementById("containerNavTabs");
@@ -624,15 +936,12 @@
         btn.addEventListener("click", () => {
           document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
           btn.classList.add("active");
-          trocarDeAba(nomeAba);
+          abaAtiva = nomeAba;
+          redecAtiva = "ALL";
+          carregarModulo(nomeAba);
         });
         container.appendChild(btn);
       });
-    }
-
-    function trocarDeAba(novaAba) {
-      abaAtiva = novaAba;
-      carregarModulo(novaAba);
     }
 
     function configurarEventosGerais() {
@@ -673,22 +982,16 @@
       const formatIso = (d) => d.toISOString().substring(0, 10);
 
       if (tipo === "hoje") {
-        dIni.value = formatIso(hoje);
-        dFim.value = formatIso(hoje);
+        dIni.value = formatIso(hoje); dFim.value = formatIso(hoje);
       } else if (tipo === "7d") {
-        const pass = new Date();
-        pass.setDate(hoje.getDate() - 7);
-        dIni.value = formatIso(pass);
-        dFim.value = formatIso(hoje);
+        const pass = new Date(); pass.setDate(hoje.getDate() - 7);
+        dIni.value = formatIso(pass); dFim.value = formatIso(hoje);
       } else if (tipo === "30d") {
-        const pass = new Date();
-        pass.setDate(hoje.getDate() - 30);
-        dIni.value = formatIso(pass);
-        dFim.value = formatIso(hoje);
+        const pass = new Date(); pass.setDate(hoje.getDate() - 30);
+        dIni.value = formatIso(pass); dFim.value = formatIso(hoje);
       } else if (tipo === "mes") {
         const prim = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-        dIni.value = formatIso(prim);
-        dFim.value = formatIso(hoje);
+        dIni.value = formatIso(prim); dFim.value = formatIso(hoje);
       } else if (tipo === "tudo") {
         definirLimitesDatasIniciais();
       }
@@ -696,10 +999,9 @@
     }
 
     function carregarModulo(nomeAba) {
-      const conf = CONFIG_MODULOS[nomeAba] || { tipo: "generico", temPeriodo: false, temMapa: false };
+      const conf = CONFIG_MODULOS[nomeAba] || { tipo: "generico", temPeriodo: false };
       
       document.getElementById("barraPeriodo").style.display = conf.temPeriodo ? "flex" : "none";
-      document.getElementById("painelMapa").style.display = conf.temMapa ? "block" : "none";
       document.getElementById("tabelaTituloAba").textContent = conf.rotulo || nomeAba;
 
       const cacheData = localStorage.getItem("cache_aba_" + nomeAba);
@@ -759,115 +1061,19 @@
       document.getElementById("subHeaderStatus").textContent = texto;
     }
 
-    // =========================================================================
-    // PADRONIZADOR DAS LINHAS DA PLANILHA
-    // =========================================================================
-    function padronizarLinha(raw, tipo) {
-      const keys = Object.keys(raw);
-      const findKey = (term) => keys.find(k => k.includes(term));
-
-      if (tipo === "sisgeo") {
-        const kData = findKey("Data Ocorrência") || findKey("DATA") || keys[3];
-        const kMun = findKey("Município") || findKey("MUNIC") || keys[15];
-        const kRedec = findKey("REDEC") || keys[0];
-        const kTipo = findKey("Tipo") || keys[5];
-        const kSubtipo = findKey("Subtipo") || keys[6];
-        const kCoords = findKey("Latitude/Longitude") || findKey("COORD") || keys[17];
-        const kEnd = findKey("Endereço") || keys[8];
-        const kBairro = findKey("Bairro") || keys[19];
-        const kViatura = findKey("Viatura") || keys[7];
-
-        const dIso = normalizarDataParaISO(raw[kData]);
-        
-        let lat = null, lon = null;
-        const coordsStr = String(raw[kCoords] || '').trim();
-        if (coordsStr.includes(',')) {
-          const parts = coordsStr.split(',');
-          const pLat = parseFloat(parts[0].trim());
-          const pLon = parseFloat(parts[1].trim());
-          if (!isNaN(pLat) && !isNaN(pLon) && pLat < 0 && pLon < 0) {
-            lat = pLat;
-            lon = pLon;
-          }
-        }
-
-        return {
-          d_iso: dIso,
-          d_fmt: formatarParaDDMMAAAA(dIso),
-          h: raw[kData] ? String(raw[kData]).substring(11, 16) : '',
-          m: raw[kMun] ? String(raw[kMun]).trim() : 'NÃO INFORMADO',
-          r: raw[kRedec] ? String(raw[kRedec]).trim().replace('–', '-') : 'ESTADUAL',
-          tipo: raw[kTipo] ? String(raw[kTipo]).trim() : 'Outros',
-          subtipo: raw[kSubtipo] ? String(raw[kSubtipo]).trim() : '',
-          endereco: raw[kEnd] ? String(raw[kEnd]).trim() : '',
-          bairro: raw[kBairro] ? String(raw[kBairro]).trim() : '',
-          viatura: raw[kViatura] ? String(raw[kViatura]).trim() : '',
-          lat: lat,
-          lon: lon,
-          tem_coords: (lat !== null && lon !== null)
-        };
-      } else if (tipo === "eventos") {
-        const dIso = normalizarDataParaISO(raw[findKey("DATA")]);
-        return {
-          d_iso: dIso,
-          d_fmt: formatarParaDDMMAAAA(dIso),
-          h: raw[findKey("HORA")] ? String(raw[findKey("HORA")]).substring(0, 5) : '',
-          m: raw[findKey("MUNIC")] ? String(raw[findKey("MUNIC")]).trim() : 'NÃO INFORMADO',
-          r: raw[findKey("REDEC")] ? String(raw[findKey("REDEC")]).trim().replace('–', '-') : 'ESTADUAL',
-          desc: raw[findKey("DESCRI")] ? String(raw[findKey("DESCRI")]).trim() : '',
-          o: parseNum(raw[findKey("SOMAT")]),
-          ob: parseNum(raw[findKey("ÓBITOS")] || raw[findKey("OBITOS")]),
-          db: parseNum(raw[findKey("DESABRIG")]),
-          dl: parseNum(raw[findKey("DESALOJ")]),
-          af: parseNum(raw[findKey("AFETADOS")]),
-          dz: parseNum(raw[findKey("DESLIZ")]),
-          in: parseNum(raw[findKey("INUNDA")]),
-          ar: parseNum(raw[findKey("ÁRVORE")]),
-          es: parseNum(raw[findKey("DESABAMENTO")]),
-          pa: parseNum(raw[findKey("PONTOS DE APOIO")]),
-          sr: parseNum(raw[findKey("SIRENE - MOBILIZA")]),
-          dc: raw[findKey("DECRETO")] ? String(raw[findKey("DECRETO")]).trim() : '',
-          lat: null, lon: null, tem_coords: false
-        };
-      } else if (tipo === "decretacao") {
-        const dtDec = normalizarDataParaISO(raw[findKey("Data de Decretação")]);
-        const dtTerm = normalizarDataParaISO(raw[findKey("Término da Vigência")]);
-        const hojeIso = new Date().toISOString().substring(0, 10);
-        const ativo = dtTerm ? (dtTerm >= hojeIso) : true;
-
-        return {
-          m: raw[findKey("MUNIC")] ? String(raw[findKey("MUNIC")]).trim() : '',
-          r: raw[findKey("REDEC")] ? String(raw[findKey("REDEC")]).trim().replace('–', '-') : '',
-          decreto: raw[findKey("DECRETAÇÃO SE ou ECP")] || raw[findKey("DECRETO")] || '',
-          nivel: raw[findKey("NÍVEL")] ? String(raw[findKey("NÍVEL")]).replace('.0', '') : '2',
-          vigencia_desc: raw[findKey("VIGÊNCIA")] || '',
-          dt_dec_fmt: formatarParaDDMMAAAA(dtDec),
-          dt_term_fmt: formatarParaDDMMAAAA(dtTerm),
-          dt_term_iso: dtTerm,
-          prazo: parseNum(raw[findKey("Prazo")]),
-          status: ativo ? 'Vigente' : 'Expirado',
-          lat: null, lon: null, tem_coords: false
-        };
-      }
-      return raw;
-    }
-
-    // MONTAGEM DOS ELEMENTOS ESPECÍFICOS DE TELA
     function montarEstruturaModulo(tipo) {
       const cKPIs = document.getElementById("containerKPIs");
       const cFiltros = document.getElementById("containerFiltros");
       const cGraficos = document.getElementById("containerGraficos");
 
-      cKPIs.innerHTML = "";
-      cFiltros.innerHTML = "";
-      cGraficos.innerHTML = "";
+      cKPIs.innerHTML = ""; cFiltros.innerHTML = ""; cGraficos.innerHTML = "";
 
       if (tipo === "sisgeo") {
         cKPIs.innerHTML = `
           <div class="kpi-card" style="border-left: 3px solid var(--orange);"><div class="kpi-label">Ocorrências SISGEO</div><div class="kpi-val" id="kpiSisTotal">-</div><div class="kpi-sub">Total de chamados</div></div>
-          <div class="kpi-card" style="border-left: 3px solid var(--blue);"><div class="kpi-label" style="color:var(--blue);">Municípios Afetados</div><div class="kpi-val" id="kpiSisMuns" style="color:var(--blue);">-</div><div class="kpi-sub">Cidades com eventos</div></div>
+          <div class="kpi-card" style="border-left: 3px solid var(--blue);"><div class="kpi-label" style="color:var(--blue);">Municípios Afetados</div><div class="kpi-val" id="kpiSisMuns" style="color:var(--blue);">-</div><div class="kpi-sub">Cidades atendidas</div></div>
           <div class="kpi-card" style="border-left: 3px solid var(--green);"><div class="kpi-label" style="color:var(--green);">Georreferenciados</div><div class="kpi-val" id="kpiSisCoords" style="color:var(--green);">-</div><div class="kpi-sub">Pontos no mapa</div></div>
-          <div class="kpi-card" style="border-left: 3px solid var(--purple);"><div class="kpi-label" style="color:var(--purple);">Epicentro Municipal</div><div class="kpi-val" id="kpiSisTopMun" style="font-size:16px; color:var(--purple);">-</div><div class="kpi-sub" id="kpiSisTopMunSub">Maior volume</div></div>
+          <div class="kpi-card" style="border-left: 3px solid var(--purple);"><div class="kpi-label" style="color:var(--purple);">Epicentro Municipal</div><div class="kpi-val" id="kpiSisTopMun" style="font-size:15px; color:var(--purple);">-</div><div class="kpi-sub" id="kpiSisTopMunSub">Maior volume</div></div>
         `;
 
         cFiltros.innerHTML = `
@@ -887,14 +1093,13 @@
           <div class="kpi-card" style="border-left: 3px solid var(--red);"><div class="kpi-label" style="color:var(--red);">Óbitos</div><div class="kpi-val" id="kpiObitos" style="color:var(--red);">-</div><div class="kpi-sub" id="kpiDesap">- desaparecidos</div></div>
           <div class="kpi-card" style="border-left: 3px solid var(--amber);"><div class="kpi-label" style="color:var(--amber);">Desabrigados</div><div class="kpi-val" id="kpiDesab" style="color:var(--amber);">-</div><div class="kpi-sub">Acolhimento público</div></div>
           <div class="kpi-card" style="border-left: 3px solid var(--blue);"><div class="kpi-label" style="color:var(--blue);">Desalojados</div><div class="kpi-val" id="kpiDesal" style="color:var(--blue);">-</div><div class="kpi-sub">Com parentes</div></div>
-          <div class="kpi-card" style="border-left: 3px solid var(--green);"><div class="kpi-label" style="color:var(--green);">Prontidão</div><div class="kpi-val" id="kpiRecursos" style="color:var(--green);">-</div><div class="kpi-sub" id="kpiSirenes">-</div></div>
         `;
 
         cFiltros.innerHTML = `
           <div class="filter-group"><label>REDEC</label><select id="filtroRedec"><option value="TODAS">Todas</option></select></div>
           <div class="filter-group"><label>Município</label><select id="filtroMun"><option value="TODOS">Todos</option></select></div>
           <div class="filter-group"><label>Tipologia</label><select id="filtroTipo"><option value="TODAS">Todas</option><option value="desliz">Deslizamento</option><option value="inund">Inundação</option><option value="arvore">Árvore</option><option value="desabam">Desabamento</option></select></div>
-          <div class="filter-group"><label>Busca Livre</label><input type="text" id="filtroTexto" placeholder="Pesquisar relato..."></div>
+          <div class="filter-group"><label>Busca Livre</label><input type="text" id="filtroTexto" placeholder="Pesquisar..."></div>
         `;
 
         cGraficos.innerHTML = `
@@ -913,11 +1118,11 @@
       const selTipo = document.getElementById("filtroTipo");
 
       if (selRedec) {
-        const redecs = [...new Set(todosRegistros.map(r => r.r).filter(r => r && !r.includes("ESTADUAL")))].sort();
+        const redecs = [...new Set(Object.values(MAPA_REDECS_RJ))].sort();
         redecs.forEach(r => selRedec.innerHTML += `<option value="${r}">${r}</option>`);
       }
       if (selMun) {
-        const muns = [...new Set(todosRegistros.map(r => r.m).filter(m => m && !m.includes("NÃO INFORMADO")))].sort();
+        const muns = Object.keys(MAPA_REDECS_RJ).sort((a,b) => a.localeCompare(b, "pt-BR"));
         muns.forEach(m => selMun.innerHTML += `<option value="${m}">${m}</option>`);
       }
       if (selTipo && tipo === "sisgeo") {
@@ -929,7 +1134,12 @@
     function anexarEventosModulo() {
       const inputs = document.querySelectorAll("#containerFiltros select, #containerFiltros input");
       inputs.forEach(el => {
-        el.addEventListener("change", filtrar);
+        el.addEventListener("change", () => {
+          if (el.id === "filtroRedec") {
+            redecAtiva = el.value;
+          }
+          filtrar();
+        });
         el.addEventListener("input", filtrar);
       });
     }
@@ -942,13 +1152,12 @@
       const dFim = document.getElementById("dataFim");
       dIni.min = datas[0]; dIni.max = datas[datas.length - 1];
       dFim.min = datas[0]; dFim.max = datas[datas.length - 1];
-      dIni.value = datas[0];
-      dFim.value = datas[datas.length - 1];
+      dIni.value = datas[0]; dFim.value = datas[datas.length - 1];
     }
 
-    // =========================================================================
-    // FILTRAGEM E ATUALIZAÇÃO DO MAPA
-    // =========================================================================
+    /* =========================================================================
+       7. FILTRAGEM E ATUALIZAÇÃO REATIVA
+       ========================================================================= */
     function filtrar() {
       const conf = CONFIG_MODULOS[abaAtiva] || { tipo: "generico", temPeriodo: false };
       const tipo = conf.tipo;
@@ -1018,8 +1227,6 @@
         document.getElementById("kpiObitos").textContent = Number(sum(b => b.ob)).toLocaleString('pt-BR');
         document.getElementById("kpiDesab").textContent = Number(sum(b => b.db)).toLocaleString('pt-BR');
         document.getElementById("kpiDesal").textContent = Number(sum(b => b.dl)).toLocaleString('pt-BR');
-        document.getElementById("kpiRecursos").textContent = `${sum(b => b.pa)} PA`;
-        document.getElementById("kpiSirenes").textContent = `${sum(b => b.sr)} sirenes`;
       }
     }
 
@@ -1053,7 +1260,7 @@
       const maxVal = sorted.length > 0 ? sorted[0][1] : 1;
 
       if (sorted.length === 0) {
-        el.innerHTML = `<div style="font-size:11px; color:var(--text-muted); padding:10px 0;">Sem registros.</div>`;
+        el.innerHTML = `<div style="font-size:11px; color:var(--text-muted); padding:8px 0;">Sem registros.</div>`;
         return;
       }
 
@@ -1062,7 +1269,7 @@
         el.innerHTML += `
           <div class="bar-row">
             <div class="bar-label-line">
-              <span style="font-weight:600; color:#cbd5e1;">${label.replace(" - RJ", "")}</span>
+              <span style="font-weight:600; color:#cbd5e1;">${label}</span>
               <span style="font-weight:700; color:#fff;">${Number(val).toLocaleString('pt-BR')} ${sufixo}</span>
             </div>
             <div class="bar-track"><div class="bar-fill" style="width:${perc}%; background:${cor};"></div></div>
@@ -1070,95 +1277,12 @@
       });
     }
 
-    // =========================================================================
-    // COLORIR MUNICÍPIOS (GEOJSON) E PLOTAR PINS COM COORDENADAS
-    // =========================================================================
-    function obterCorMunicipio(qtd) {
-      if (qtd > 50) return '#dc2626'; // Vermelho vivo
-      if (qtd > 20) return '#ea580c'; // Laranja intenso
-      if (qtd > 5)  return '#f97316'; // Laranja padrão
-      if (qtd > 0)  return '#fcd34d'; // Amarelo suave
-      return '#94a3b8';               // Cinza elegante (sem ocorrências)
-    }
-
-    function atualizarCamadasMapa() {
-      if (!leafletMap) return;
-
-      markersLayerGroup.clearLayers();
-
-      const contagemMun = {};
-      filtrados.forEach(item => {
-        const m = normalizarTexto(item.m);
-        if (m) contagemMun[m] = (contagemMun[m] || 0) + (item.o || 1);
-      });
-
-      // Puxa a variável global GEOJSON do seu mapa.js
-      const dadosGeoJson = window.GEOJSON || window.geojsonRio || window.geoJsonRio;
-
-      if (dadosGeoJson) {
-        if (geojsonLayer) leafletMap.removeLayer(geojsonLayer);
-
-        geojsonLayer = L.geoJSON(dadosGeoJson, {
-          style: function(feature) {
-            const props = feature.properties || {};
-            // Usa NM_MUN conforme especificado no seu mapa.js
-            const nomeGeo = normalizarTexto(props.NM_MUN || props.name || '');
-            const qtd = contagemMun[nomeGeo] || 0;
-
-            return {
-              fillColor: obterCorMunicipio(qtd),
-              weight: 1.2,
-              opacity: 1,
-              color: '#ffffff', // Borda branca fina para delimitar os municípios
-              fillOpacity: qtd > 0 ? 0.85 : 0.4
-            };
-          },
-          onEachFeature: function(feature, layer) {
-            const props = feature.properties || {};
-            const nomeExibicao = props.NM_MUN || 'Município';
-            const nomeNorm = normalizarTexto(nomeExibicao);
-            const qtd = contagemMun[nomeNorm] || 0;
-
-            layer.bindTooltip(`<strong>${nomeExibicao}</strong><br>${qtd} ocorrência(s)`, { sticky: true });
-          }
-        }).addTo(leafletMap);
-      }
-
-      // Marcadores com coordenadas geográficas exatas
-      const pontosComCoords = filtrados.filter(i => i.tem_coords);
-      pontosComCoords.slice(0, 300).forEach(pt => {
-        const marker = L.circleMarker([pt.lat, pt.lon], {
-          radius: 4.5,
-          fillColor: '#dc2626',
-          color: '#ffffff',
-          weight: 1.5,
-          opacity: 1,
-          fillOpacity: 0.95
-        });
-
-        const popupHtml = `
-          <div style="font-size:11px; line-height:1.4;">
-            <strong style="color:#ea580c;">${pt.tipo}</strong><br>
-            <strong>${pt.m}</strong> - ${pt.bairro || ''}<br>
-            <span style="color:#64748b;">${pt.endereco}</span><br>
-            <span style="color:#0284c7; font-size:10px;">Vtr: ${pt.viatura || '-'} | ${pt.d_fmt} ${pt.h}</span>
-          </div>
-        `;
-        marker.bindPopup(popupHtml);
-        markersLayerGroup.addLayer(marker);
-      });
-    }
-
-    // =========================================================================
-    // RENDERIZAÇÃO DA TABELA
-    // =========================================================================
     function renderizarTabela() {
       const conf = CONFIG_MODULOS[abaAtiva] || { tipo: "generico" };
       const tipo = conf.tipo;
       const thead = document.getElementById("tabelaCabecalho");
       const tbody = document.getElementById("tabelaCorpo");
-      thead.innerHTML = "";
-      tbody.innerHTML = "";
+      thead.innerHTML = ""; tbody.innerHTML = "";
 
       const total = filtrados.length;
       const totalPags = Math.ceil(total / porPagina) || 1;
@@ -1168,7 +1292,7 @@
       document.getElementById("btnProx").disabled = (pagina >= totalPags);
 
       if (total === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:25px; color:var(--text-muted);">Nenhum registro encontrado.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Nenhum registro encontrado.</td></tr>`;
         return;
       }
 
@@ -1181,16 +1305,12 @@
             <th>Data/Hora</th>
             <th>Município</th>
             <th>Tipologia</th>
-            <th style="min-width:180px;">Endereço</th>
+            <th style="min-width:160px;">Endereço</th>
             <th>Viatura</th>
             <th style="text-align:center;">GPS</th>
           </tr>`;
 
         itens.forEach(i => {
-          const coordBadge = i.tem_coords 
-            ? `<span class="badge badge-ativo" title="${i.lat}, ${i.lon}">OK</span>` 
-            : `<span class="badge" style="background:#334155; color:#94a3b8;">-</span>`;
-
           tbody.innerHTML += `
             <tr>
               <td style="white-space:nowrap; font-family:monospace; color:var(--text-muted);">
@@ -1207,7 +1327,7 @@
               </td>
               <td style="color:var(--text-muted); font-size:10px;">${i.endereco || '-'}</td>
               <td style="white-space:nowrap; font-family:monospace; color:#38bdf8;">${i.viatura || '-'}</td>
-              <td style="text-align:center;">${coordBadge}</td>
+              <td style="text-align:center;">${i.tem_coords ? `<span class="badge badge-ativo">OK</span>` : `<span class="badge" style="background:#334155; color:#94a3b8;">-</span>`}</td>
             </tr>`;
         });
       } else if (tipo === "eventos") {
@@ -1215,9 +1335,9 @@
           <tr>
             <th>Data/Hora</th>
             <th>Município</th>
-            <th style="min-width:200px;">Relato</th>
+            <th style="min-width:180px;">Relato</th>
             <th style="text-align:center;">Ocorrências</th>
-            <th style="text-align:center;">Danos Humanos</th>
+            <th style="text-align:center;">Danos</th>
             <th style="text-align:center;">Status</th>
           </tr>`;
 
@@ -1242,6 +1362,20 @@
         });
       }
     }
+
+    // Redimensionamento inteligente
+    let resizeDebounce = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeDebounce);
+      resizeDebounce = setTimeout(() => {
+        if (mapInstance) {
+          mapInstance.invalidateSize({ animate: false });
+          if (currentScopeBounds && currentScopeBounds.isValid()) {
+            mapInstance.fitBounds(currentScopeBounds, { padding: [14, 14], animate: false });
+          }
+        }
+      }, 180);
+    });
   </script>
 </body>
 </html>
