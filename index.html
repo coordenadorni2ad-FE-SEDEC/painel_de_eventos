@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Integrado de Eventos e Desastres - REDECs / SEDEC-RJ</title>
+  
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- PapaParse para importação de CSV -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              orange: '#f97316',
+              darkorange: '#c2410c',
+              navy: '#0f172a',
+              card: '#1e293b',
+              border: '#334155'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0b1120;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: #f97316;
+    }
+  </style>
+</head>
+<body class="p-4 md:p-6 min-h-screen">
+
+  <!-- CABEÇALHO -->
+  <header class="mb-6 pb-4 border-b border-brand-border flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center justify-center p-2.5 bg-orange-500/20 text-orange-400 rounded-lg border border-orange-500/30">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </span>
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Painel de Monitoramento de Eventos - REDECs</h1>
+          <p class="text-xs md:text-sm text-slate-400">Inteligência Operacional, Resposta e Gestão de Danos em Defesa Civil</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ÁREA DE CARREGAMENTO DE CSV E STATUS -->
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="text-right hidden sm:block">
+        <div id="statusRegistros" class="text-xs font-semibold text-orange-400 uppercase tracking-wider">Base Carregada</div>
+        <div id="timestampInfo" class="text-xs text-slate-400">Dados Operacionais Consolidados</div>
+      </div>
+      <label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-orange-400 hover:text-orange-300 border border-slate-700 hover:border-orange-500/50 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition flex items-center gap-2 shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+        </svg>
+        <span>Atualizar / Importar CSV</span>
+        <input type="file" id="csvFileInput" accept=".csv" class="hidden" />
+      </label>
+    </div>
+  </header>
+
+  <!-- CARDS DE KPIS -->
+  <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+    <!-- Total Ocorrências -->
+    <div class="bg-brand-card p-4 rounded-xl border border-brand-border/60 hover:border-orange-500/40 transition">
+      <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Ocorrências</span>
+      <div id="kpiOcorrencias" class="text-2xl md:text-3xl font-bold text-white mt-1">0</div>
+      <span class="text-[11px] text-slate-400 mt-1 block">Total computado</span>
+    </div>
+
+    <!-- Óbitos -->
+    <div class="bg-brand-card p-4 rounded-xl border border-red-900/40 hover:border-red-500/50 transition">
+      <span class="text-xs font-medium text-red-400 uppercase tracking-wider">Óbitos</span>
+      <div id="kpiObitos" class="text-2xl md:text-3xl font-bold text-red-400 mt-1">0</div>
+      <span id="kpiDesaparecidosBadge" class="text-[11px] text-red-300/80 mt-1 block">0 desaparecidos</span>
+    </div>
+
+    <!-- Desabrigados -->
+    <div class="bg-brand-card p-4 rounded-xl border border-amber-900/40 hover:border-amber-500/50 transition">
+      <span class="text-xs font-medium text-amber-400 uppercase tracking-wider">Desabrigados</span>
+      <div id="kpiDesabrigados" class="text-2xl md:text-3xl font-bold text-amber-300 mt-1">0</div>
+      <span class="text-[11px] text-slate-400 mt-1 block">Necessitam de abrigo</span>
+    </div>
+
+    <!-- Desalojados -->
+    <div class="bg-brand-card p-4 rounded-xl border border-brand-border/60 hover:border-amber-500/40 transition">
+      <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Desalojados</span>
+      <div id="kpiDesalojados" class="text-2xl md:text-3xl font-bold text-white mt-1">0</div>
+      <span class="text-[11px] text-slate-400 mt-1 block">Com parentes/amigos</span>
+    </div>
+
+    <!-- Total Afetados -->
+    <div class="bg-brand-card p-4 rounded-xl border border-brand-border/60 hover:border-blue-500/40 transition">
+      <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Total Afetados</span>
+      <div id="kpiAfetados" class="text-2xl md:text-3xl font-bold text-blue-400 mt-1">0</div>
+      <span class="text-[11px] text-slate-400 mt-1 block">População impactada</span>
+    </div>
+
+    <!-- Ações e Recursos -->
+    <div class="bg-brand-card p-4 rounded-xl border border-brand-border/60 hover:border-emerald-500/40 transition">
+      <span class="text-xs font-medium text-slate-400 uppercase tracking-wider">Prontidão / PA</span>
+      <div id="kpiRecursos" class="text-2xl md:text-3xl font-bold text-emerald-400 mt-1">0</div>
+      <span id="kpiSirenesBadge" class="text-[11px] text-slate-400 mt-1 block">0 sirenes mobilizadas</span>
+    </div>
+  </section>
+
+  <!-- BARRA DE CONTROLES E FILTROS -->
+  <section class="bg-brand-card p-4 rounded-xl border border-brand-border mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Filtrar por REDEC</label>
+        <select id="filtroRedec" class="w-full bg-slate-900 border border-brand-border text-slate-200 text-sm rounded-lg px-3 py-2 focus:ring-1 focus:ring-orange-500 focus:outline-none">
+          <option value="TODAS">Todas as REDECs</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Filtrar por Município</label>
+        <select id="filtroMunicipio" class="w-full bg-slate-900 border border-brand-border text-slate-200 text-sm rounded-lg px-3 py-2 focus:ring-1 focus:ring-orange-500 focus:outline-none">
+          <option value="TODOS">Todos os Municípios</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Tipologia Predominante</label>
+        <select id="filtroTipologia" class="w-full bg-slate-900 border border-brand-border text-slate-200 text-sm rounded-lg px-3 py-2 focus:ring-1 focus:ring-orange-500 focus:outline-none">
+          <option value="TODAS">Todas as Tipologias</option>
+          <option value="deslizamento">Deslizamento de Encosta</option>
+          <option value="inundacao">Inundação / Alagamento / Enxurrada</option>
+          <option value="arvore">Queda de Árvore</option>
+          <option value="desabamento">Desabamento / Queda de Estruturas</option>
+          <option value="danos_humanos">Com Vítimas / Danos Humanos</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Busca Textual</label>
+        <input type="text" id="filtroTexto" placeholder="Buscar por rua, bairro ou relato..." class="w-full bg-slate-900 border border-brand-border text-slate-200 text-sm rounded-lg px-3 py-2 focus:ring-1 focus:ring-orange-500 focus:outline-none">
+      </div>
+    </div>
+  </section>
+
+  <!-- GRÁFICOS -->
+  <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <!-- Ocorrências por REDEC -->
+    <div class="lg:col-span-2 bg-brand-card p-5 rounded-xl border border-brand-border">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider">Ocorrências Computadas por REDEC</h2>
+        <span class="text-xs text-slate-400">Volume Total por Região</span>
+      </div>
+      <div class="h-64 relative">
+        <canvas id="chartRedecs"></canvas>
+      </div>
+    </div>
+
+    <!-- Tipologias de Desastre -->
+    <div class="bg-brand-card p-5 rounded-xl border border-brand-border">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider">Tipologia dos Eventos</h2>
+        <span class="text-xs text-slate-400">Classificação Física</span>
+      </div>
+      <div class="h-64 relative">
+        <canvas id="chartTipologias"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- GRÁFICOS SECUNDÁRIOS: DANOS HUMANOS E MUNICÍPIOS -->
+  <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <div class="bg-brand-card p-5 rounded-xl border border-brand-border">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider">Danos Humanos por REDEC (Desabrigados x Desalojados)</h2>
+        <span class="text-xs text-slate-400">Acolhimento Emergencial</span>
+      </div>
+      <div class="h-64 relative">
+        <canvas id="chartDanosHumanos"></canvas>
+      </div>
+    </div>
+
+    <div class="bg-brand-card p-5 rounded-xl border border-brand-border">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-sm font-bold text-slate-200 uppercase tracking-wider">Top Municípios com Maior Volume de Ocorrências</h2>
+        <span class="text-xs text-slate-400">Cidades mais demandadas</span>
+      </div>
+      <div class="h-64 relative">
+        <canvas id="chartMunicipios"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- TABELA DE OCORRÊNCIAS OPERACIONAIS -->
+  <section class="bg-brand-card rounded-xl border border-brand-border overflow-hidden">
+    <div class="p-4 border-b border-brand-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+      <div>
+        <h2 class="text-sm font-bold text-white uppercase tracking-wider">Registros Detalhados de Ocorrências</h2>
+        <p class="text-xs text-slate-400" id="contadorTabela">Exibindo registros filtrados</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btnPrevPage" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded border border-slate-700 disabled:opacity-50 transition">Anterior</button>
+        <span id="pageInfo" class="text-xs text-slate-400">Pág. 1 / 1</span>
+        <button id="btnNextPage" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded border border-slate-700 disabled:opacity-50 transition">Próxima</button>
+      </div>
+    </div>
+
+    <div class="overflow-x-auto custom-scroll max-h-[500px]">
+      <table class="w-full text-left text-xs text-slate-300">
+        <thead class="bg-slate-900/90 text-slate-400 uppercase text-[11px] sticky top-0 z-10">
+          <tr>
+            <th class="px-4 py-3">Data/Hora</th>
+            <th class="px-4 py-3">REDEC</th>
+            <th class="px-4 py-3">Município</th>
+            <th class="px-4 py-3">Tipologia / Descrição</th>
+            <th class="px-4 py-3 text-center">Ocorrências</th>
+            <th class="px-4 py-3 text-center">Danos Humanos</th>
+            <th class="px-4 py-3 text-center">Status / Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaEventosBody" class="divide-y divide-brand-border/60">
+          <!-- Inserido dinamicamente via JS -->
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- SCRIPTS DE PROCESSAMENTO E RENDERIZAÇÃO -->
+  <script>
+    // DADOS HISTÓRICOS PRÉ-CONSOLIDADOS (Valores da Aba EVENTOS REDECS)
+    const baseConsolidadaRedecs = [
+      { redec: "REDEC 2 - BAIXADA FLUMINENSE", ocorrencias: 87, desabrigados: 100, desalojados: 425, obitos: 1, afetados: 2557, desliz: 25, inund: 31, arvore: 15, desabam: 15 },
+      { redec: "REDEC 8 - SERRANA II", ocorrencias: 69, desabrigados: 64, desalojados: 1539, obitos: 0, afetados: 105891, desliz: 11, inund: 16, arvore: 23, desabam: 19 },
+      { redec: "REDEC 11 - NOROESTE", ocorrencias: 67, desabrigados: 241, desalojados: 9256, obitos: 0, afetados: 51184, desliz: 29, inund: 21, arvore: 2, desabam: 12 },
+      { redec: "REDEC 9 - BAIXADA LITORÂNEA", ocorrencias: 66, desabrigados: 169, desalojados: 1765, obitos: 0, afetados: 260100, desliz: 25, inund: 14, arvore: 18, desabam: 7 },
+      { redec: "REDEC 5 - SUL I", ocorrencias: 58, desabrigados: 60, desalojados: 774, obitos: 1, afetados: 45838, desliz: 26, inund: 19, arvore: 3, desabam: 10 },
+      { redec: "REDEC 7 - SERRANA I", ocorrencias: 40, desabrigados: 0, desalojados: 13, obitos: 0, afetados: 32, desliz: 23, inund: 8, arvore: 8, desabam: 1 },
+      { redec: "REDEC 10 - NORTE", ocorrencias: 30, desabrigados: 0, desalojados: 29, obitos: 0, afetados: 40, desliz: 6, inund: 21, arvore: 3, desabam: 0 },
+      { redec: "REDEC 6 - SUL II", ocorrencias: 17, desabrigados: 5, desalojados: 45, obitos: 0, afetados: 100797, desliz: 6, inund: 6, arvore: 2, desabam: 0 },
+      { redec: "REDEC 3 - METROPOLITANA", ocorrencias: 11, desabrigados: 0, desalojados: 20, obitos: 0, afetados: 0, desliz: 5, inund: 0, arvore: 1, desabam: 2 },
+      { redec: "REDEC 4 - COSTA VERDE", ocorrencias: 10, desabrigados: 280, desalojados: 392, obitos: 7, afetados: 0, desliz: 1, inund: 6, arvore: 1, desabam: 0 },
+      { redec: "REDEC 1 - CAPITAL", ocorrencias: 1, desabrigados: 0, desalojados: 0, obitos: 1, afetados: 0, desliz: 0, inund: 0, arvore: 0, desabam: 1 }
+    ];
+
+    // Amostra representativa inicial carregada da base original
+    let registrosOperacionais = [
+      { id: 1, data: "2026-02-01", hora: "21:50", redec: "REDEC 2 - BAIXADA FLUMINENSE", mun: "SÃO JOÃO DE MERITI - RJ", desc: "Queda de árvore em unidade escolar municipal (Parque Alian) e em vias públicas (Vilar dos Teles e Vila Rosali).", total_ocorr: 3, desab: 0, desal: 0, obitos: 0, feridos: 0, desap: 0, afetados: 0, inund: 0, desliz: 0, desabam: 0, arvore: 3, pa: 0, sirenes: 0, decreto: "" },
+      { id: 2, data: "2026-02-03", hora: "14:30", redec: "REDEC 11 - NOROESTE", mun: "ITAPERUNA - RJ", desc: "Transbordamento do Rio Muriaé, alagamentos generalizados e pessoas desalojadas em áreas ribeirinhas.", total_ocorr: 17, desab: 50, desal: 1859, obitos: 0, feridos: 0, desap: 0, afetados: 12000, inund: 15, desliz: 2, desabam: 0, arvore: 0, pa: 2, sirenes: 0, decreto: "Decreto nº 7856 (Nível 2)" },
+      { id: 3, data: "2026-02-05", hora: "19:40", redec: "REDEC 7 - SERRANA I", mun: "PETRÓPOLIS - RJ", desc: "Acúmulo pluviométrico severo, acionamento preventivo de sirenes e abertura de pontos de apoio para comunidades de encosta.", total_ocorr: 8, desab: 0, desal: 13, obitos: 0, feridos: 0, desap: 0, afetados: 32, inund: 2, desliz: 5, desabam: 1, arvore: 0, pa: 6, sirenes: 28, decreto: "" },
+      { id: 4, data: "2026-02-06", hora: "08:15", redec: "REDEC 5 - SUL I", mun: "PATY DO ALFERES - RJ", desc: "Movimentação de massa em taludes e enxurradas atingindo residências na zona rural e distritos.", total_ocorr: 6, desab: 20, desal: 400, obitos: 0, feridos: 0, desap: 0, afetados: 1500, inund: 3, desliz: 3, desabam: 0, arvore: 0, pa: 0, sirenes: 0, decreto: "Decreto nº 9676 (Nível 2)" },
+      { id: 5, data: "2026-02-22", hora: "17:00", redec: "REDEC 4 - COSTA VERDE", mun: "ANGRA DOS REIS - RJ", desc: "Deslizamentos de terra em encostas litorâneas com colapso estrutural de habitações, registros de óbitos e pessoas desabrigadas.", total_ocorr: 8, desab: 280, desal: 392, obitos: 5, feridos: 4, desap: 2, afetados: 0, inund: 2, desliz: 5, desabam: 1, arvore: 0, pa: 10, sirenes: 14, decreto: "Decreto nº 14616" },
+      { id: 6, data: "2026-02-22", hora: "18:20", redec: "REDEC 2 - BAIXADA FLUMINENSE", mun: "NOVA IGUAÇU - RJ", desc: "Alagamentos críticos em vias arteriais, quedas de árvores sobre fiação elétrica e destelhamento de edificações.", total_ocorr: 57, desab: 10, desal: 22, obitos: 0, feridos: 0, desap: 0, afetados: 850, inund: 28, desliz: 14, desabam: 5, arvore: 10, pa: 0, sirenes: 0, decreto: "S.E-14.103 NÍVEL II" },
+      { id: 7, data: "2026-02-24", hora: "11:00", redec: "REDEC 5 - SUL I", mun: "BARRA MANSA - RJ", desc: "Elevação do nível de cursos d'água com inundação em áreas baixas e acionamento de sirenes de mobilização em bairros vulneráveis.", total_ocorr: 40, desab: 12, desal: 63, obitos: 1, feridos: 2, desap: 0, afetados: 3200, inund: 14, desliz: 18, desabam: 5, arvore: 3, pa: 0, sirenes: 4, decreto: "" },
+      { id: 8, data: "2026-02-28", hora: "09:30", redec: "REDEC 9 - BAIXADA LITORÂNEA", mun: "RIO DAS OSTRAS - RJ", desc: "Ressaca e tempestades com alagamento severo de vias, isolamento de setores e contingenciamento da população desalojada.", total_ocorr: 16, desab: 45, desal: 1214, obitos: 0, feridos: 0, desap: 0, afetados: 18000, inund: 10, desliz: 2, desabam: 2, arvore: 2, pa: 0, sirenes: 0, decreto: "Decreto nº 4608" },
+      { id: 9, data: "2026-03-01", hora: "16:45", redec: "REDEC 8 - SERRANA II", mun: "BOM JARDIM - RJ", desc: "Enxurradas torrenciais arrastando pontes vicinais, interdição parcial de rodovias estaduais e casas desabrigadas.", total_ocorr: 36, desab: 64, desal: 1097, obitos: 0, feridos: 0, desap: 0, afetados: 14200, inund: 12, desliz: 9, desabam: 8, arvore: 7, pa: 19, sirenes: 0, decreto: "" },
+      { id: 10, data: "2026-03-02", hora: "10:15", redec: "REDEC 2 - BAIXADA FLUMINENSE", mun: "MESQUITA - RJ", desc: "Transbordamento de calhas e canais com impactos em equipamentos públicos e decretação formal de situação emergencial.", total_ocorr: 8, desab: 0, desal: 0, obitos: 0, feridos: 0, desap: 0, afetados: 0, inund: 5, desliz: 2, desabam: 1, arvore: 0, pa: 0, sirenes: 0, decreto: "Decreto nº 3.853" },
+      { id: 11, data: "2026-02-09", hora: "06:00", redec: "REDEC 11 - NOROESTE", mun: "SANTO ANTÔNIO DE PÁDUA - RJ", desc: "Cheia contínua do Rio Pomba provocando desalojamento maciço de moradores de bairros centrais e periféricos.", total_ocorr: 9, desab: 150, desal: 6420, obitos: 0, feridos: 0, desap: 0, afetados: 25000, inund: 8, desliz: 1, desabam: 0, arvore: 0, pa: 0, sirenes: 0, decreto: "" },
+      { id: 12, data: "2026-02-23", hora: "20:10", redec: "REDEC 4 - COSTA VERDE", mun: "PARATY - RJ", desc: "Movimento de encosta com queda de blocos rochosos em habitação residencial com vítimas fatais registradas.", total_ocorr: 2, desab: 0, desal: 0, obitos: 2, feridos: 1, desap: 0, afetados: 0, inund: 0, desliz: 1, desabam: 1, arvore: 0, pa: 0, sirenes: 0, decreto: "" }
+    ];
+
+    // Instâncias Globais dos Gráficos
+    let chartRedecsInst = null;
+    let chartTipologiasInst = null;
+    let chartDanosHumanosInst = null;
+    let chartMunicipiosInst = null;
+
+    // Paginação da tabela
+    let paginaAtual = 1;
+    const itensPorPagina = 8;
+    let registrosFiltrados = [];
+
+    // Inicialização da Aplicação
+    document.addEventListener("DOMContentLoaded", () => {
+      popularFiltrosSelect();
+      aplicarFiltrosEAtualizar();
+      configurarEventosUI();
+    });
+
+    function normalizarTexto(txt) {
+      return (txt || '').normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+    }
+
+    function popularFiltrosSelect() {
+      const selectRedec = document.getElementById("filtroRedec");
+      const selectMun = document.getElementById("filtroMunicipio");
+
+      const redecsUnicas = [...new Set(baseConsolidadaRedecs.map(r => r.redec))].sort();
+      redecsUnicas.forEach(redec => {
+        const opt = document.createElement("option");
+        opt.value = redec;
+        opt.textContent = redec;
+        selectRedec.appendChild(opt);
+      });
+
+      const municipiosUnicos = [...new Set(registrosOperacionais.map(r => r.mun).filter(m => m && !m.includes("GERAL"))].sort();
+      selectMun.innerHTML = '<option value="TODOS">Todos os Municípios</option>';
+      municipiosUnicos.forEach(mun => {
+        const opt = document.createElement("option");
+        opt.value = mun;
+        opt.textContent = mun;
+        selectMun.appendChild(opt);
+      });
+    }
+
+    function configurarEventosUI() {
+      document.getElementById("filtroRedec").addEventListener("change", () => {
+        atualizarSelectMunicipiosDependente();
+        aplicarFiltrosEAtualizar();
+      });
+      document.getElementById("filtroMunicipio").addEventListener("change", aplicarFiltrosEAtualizar);
+      document.getElementById("filtroTipologia").addEventListener("change", aplicarFiltrosEAtualizar);
+      document.getElementById("filtroTexto").addEventListener("input", aplicarFiltrosEAtualizar);
+
+      document.getElementById("btnPrevPage").addEventListener("click", () => {
+        if (paginaAtual > 1) {
+          paginaAtual--;
+          renderizarTabela();
+        }
+      });
+
+      document.getElementById("btnNextPage").addEventListener("click", () => {
+        const totalPaginas = Math.ceil(registrosFiltrados.length / itensPorPagina) || 1;
+        if (paginaAtual < totalPaginas) {
+          paginaAtual++;
+          renderizarTabela();
+        }
+      });
+
+      // Upload do CSV original da Defesa Civil
+      document.getElementById("csvFileInput").addEventListener("change", handleCsvUpload);
+    }
+
+    function atualizarSelectMunicipiosDependente() {
+      const redecSel = document.getElementById("filtroRedec").value;
+      const selectMun = document.getElementById("filtroMunicipio");
+      let lista = registrosOperacionais;
+      if (redecSel !== "TODAS") {
+        lista = lista.filter(r => r.redec === redecSel);
+      }
+      const municipios = [...new Set(lista.map(r => r.mun).filter(m => m && !m.includes("GERAL"))].sort();
+      
+      const valorAtual = selectMun.value;
+      selectMun.innerHTML = '<option value="TODOS">Todos os Municípios</option>';
+      municipios.forEach(mun => {
+        const opt = document.createElement("option");
+        opt.value = mun;
+        opt.textContent = mun;
+        selectMun.appendChild(opt);
+      });
+      if (municipios.includes(valorAtual)) {
+        selectMun.value = valorAtual;
+      }
+    }
+
+    function aplicarFiltrosEAtualizar() {
+      const redec = document.getElementById("filtroRedec").value;
+      const mun = document.getElementById("filtroMunicipio").value;
+      const tipo = document.getElementById("filtroTipologia").value;
+      const texto = normalizarTexto(document.getElementById("filtroTexto").value);
+
+      registrosFiltrados = registrosOperacionais.filter(item => {
+        const matchRedec = (redec === "TODAS") || (item.redec === redec);
+        const matchMun = (mun === "TODOS") || (item.mun === mun);
+        
+        let matchTipo = true;
+        if (tipo === "deslizamento") matchTipo = item.desliz > 0;
+        else if (tipo === "inundacao") matchTipo = item.inund > 0;
+        else if (tipo === "arvore") matchTipo = item.arvore > 0;
+        else if (tipo === "desabamento") matchTipo = item.desabam > 0;
+        else if (tipo === "danos_humanos") matchTipo = (item.obitos > 0 || item.desab > 0 || item.desal > 0);
+
+        let matchTexto = true;
+        if (texto) {
+          const comp = normalizarTexto(`${item.redec} ${item.mun} ${item.desc} ${item.decreto}`);
+          matchTexto = comp.includes(texto);
+        }
+
+        return matchRedec && matchMun && matchTipo && matchTexto;
+      });
+
+      paginaAtual = 1;
+      atualizarKPIs(redec, mun);
+      atualizarGraficos(redec);
+      renderizarTabela();
+    }
+
+    function atualizarKPIs(redecFiltro, munFiltro) {
+      let totalOcorr = 0, totalObitos = 0, totalDesap = 0, totalDesab = 0, totalDesal = 0, totalAfet = 0, totalPA = 0, totalSirenes = 0;
+
+      // Se não há filtro específico de município ou texto, usamos a base analítica consolidada do estado
+      const semFiltroDetalhado = (munFiltro === "TODOS" && document.getElementById("filtroTipologia").value === "TODAS" && !document.getElementById("filtroTexto").value);
+
+      if (semFiltroDetalhado) {
+        const baseCalculo = (redecFiltro === "TODAS") 
+          ? baseConsolidadaRedecs 
+          : baseConsolidadaRedecs.filter(r => r.redec === redecFiltro);
+
+        totalOcorr = baseCalculo.reduce((acc, c) => acc + (c.ocorrencias || 0), 0);
+        totalObitos = baseCalculo.reduce((acc, c) => acc + (c.obitos || 0), 0);
+        totalDesab = baseCalculo.reduce((acc, c) => acc + (c.desabrigados || 0), 0);
+        totalDesal = baseCalculo.reduce((acc, c) => acc + (c.desalojados || 0), 0);
+        totalAfet = baseCalculo.reduce((acc, c) => acc + (c.afetados || 0), 0);
+        totalPA = (redecFiltro === "TODAS") ? 58 : registrosFiltrados.reduce((a, b) => a + (b.pa || 0), 0);
+        totalSirenes = (redecFiltro === "TODAS") ? 122 : registrosFiltrados.reduce((a, b) => a + (b.sirenes || 0), 0);
+      } else {
+        totalOcorr = registrosFiltrados.reduce((acc, c) => acc + (c.total_ocorr || 0), 0);
+        totalObitos = registrosFiltrados.reduce((acc, c) => acc + (c.obitos || 0), 0);
+        totalDesap = registrosFiltrados.reduce((acc, c) => acc + (c.desap || 0), 0);
+        totalDesab = registrosFiltrados.reduce((acc, c) => acc + (c.desab || 0), 0);
+        totalDesal = registrosFiltrados.reduce((acc, c) => acc + (c.desal || 0), 0);
+        totalAfet = registrosFiltrados.reduce((acc, c) => acc + (c.afetados || 0), 0);
+        totalPA = registrosFiltrados.reduce((acc, c) => acc + (c.pa || 0), 0);
+        totalSirenes = registrosFiltrados.reduce((acc, c) => acc + (c.sirenes || 0), 0);
+      }
+
+      document.getElementById("kpiOcorrencias").textContent = Number(totalOcorr).toLocaleString('pt-BR');
+      document.getElementById("kpiObitos").textContent = Number(totalObitos).toLocaleString('pt-BR');
+      document.getElementById("kpiDesaparecidosBadge").textContent = `${totalDesap} desaparecidos`;
+      document.getElementById("kpiDesabrigados").textContent = Number(totalDesab).toLocaleString('pt-BR');
+      document.getElementById("kpiDesalojados").textContent = Number(totalDesal).toLocaleString('pt-BR');
+      document.getElementById("kpiAfetados").textContent = Number(totalAfet).toLocaleString('pt-BR');
+      document.getElementById("kpiRecursos").textContent = `${totalPA} P.A.`;
+      document.getElementById("kpiSirenesBadge").textContent = `${totalSirenes} acionamentos sirene`;
+    }
+
+    function atualizarGraficos(redecFiltro) {
+      const ctxRedec = document.getElementById("chartRedecs").getContext("2d");
+      const ctxTipo = document.getElementById("chartTipologias").getContext("2d");
+      const ctxDanos = document.getElementById("chartDanosHumanos").getContext("2d");
+      const ctxMun = document.getElementById("chartMunicipios").getContext("2d");
+
+      // 1. Gráfico de Ocorrências por REDEC
+      const dadosRedecs = [...baseConsolidadaRedecs].sort((a, b) => b.ocorrencias - a.ocorrencias);
+      const labelsRedecs = dadosRedecs.map(d => d.redec.replace("REDEC ", "R-"));
+      const valoresOcorr = dadosRedecs.map(d => d.ocorrencias);
+
+      if (chartRedecsInst) chartRedecsInst.destroy();
+      chartRedecsInst = new Chart(ctxRedec, {
+        type: 'bar',
+        data: {
+          labels: labelsRedecs,
+          datasets: [{
+            label: 'Total de Ocorrências',
+            data: valoresOcorr,
+            backgroundColor: dadosRedecs.map(d => (redecFiltro !== "TODAS" && d.redec === redecFiltro) ? '#f97316' : 'rgba(249, 115, 22, 0.45)'),
+            borderColor: '#f97316',
+            borderWidth: 1.5,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: (items) => dadosRedecs[items[0].dataIndex].redec
+              }
+            }
+          },
+          scales: {
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } }
+          }
+        }
+      });
+
+      // 2. Gráfico de Tipologia
+      let totalDesliz = 0, totalInund = 0, totalArvore = 0, totalDesabam = 0, totalOutros = 14;
+      const baseTipo = (redecFiltro === "TODAS") ? baseConsolidadaRedecs : baseConsolidadaRedecs.filter(r => r.redec === redecFiltro);
+      totalDesliz = baseTipo.reduce((a, b) => a + (b.desliz || 0), 0);
+      totalInund = baseTipo.reduce((a, b) => a + (b.inund || 0), 0);
+      totalArvore = baseTipo.reduce((a, b) => a + (b.arvore || 0), 0);
+      totalDesabam = baseTipo.reduce((a, b) => a + (b.desabam || 0), 0);
+
+      if (chartTipologiasInst) chartTipologiasInst.destroy();
+      chartTipologiasInst = new Chart(ctxTipo, {
+        type: 'doughnut',
+        data: {
+          labels: ['Deslizamentos', 'Inundações/Enxurradas', 'Quedas de Árvore', 'Desabamentos', 'Outros'],
+          datasets: [{
+            data: [totalDesliz, totalInund, totalArvore, totalDesabam, totalOutros],
+            backgroundColor: ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { color: '#cbd5e1', boxWidth: 12, font: { size: 11 } } }
+          },
+          cutout: '65%'
+        }
+      });
+
+      // 3. Gráfico de Danos Humanos por REDEC
+      const dadosDanos = [...baseConsolidadaRedecs].sort((a, b) => (b.desabrigados + b.desalojados) - (a.desabrigados + a.desalojados)).slice(0, 7);
+      if (chartDanosHumanosInst) chartDanosHumanosInst.destroy();
+      chartDanosHumanosInst = new Chart(ctxDanos, {
+        type: 'bar',
+        data: {
+          labels: dadosDanos.map(d => d.redec.split(" - ")[1] || d.redec),
+          datasets: [
+            { label: 'Desabrigados', data: dadosDanos.map(d => d.desabrigados), backgroundColor: '#f59e0b' },
+            { label: 'Desalojados', data: dadosDanos.map(d => d.desalojados), backgroundColor: '#38bdf8' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+            y: { stacked: true, grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } }
+          },
+          plugins: {
+            legend: { labels: { color: '#cbd5e1', boxWidth: 12 } }
+          }
+        }
+      });
+
+      // 4. Gráfico Top Municípios
+      const mapMunOcorr = {};
+      registrosOperacionais.forEach(r => {
+        if (r.mun && !r.mun.includes("GERAL")) {
+          mapMunOcorr[r.mun] = (mapMunOcorr[r.mun] || 0) + (r.total_ocorr || 1);
+        }
+      });
+      const topMunSorted = Object.entries(mapMunOcorr).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+      if (chartMunicipiosInst) chartMunicipiosInst.destroy();
+      chartMunicipiosInst = new Chart(ctxMun, {
+        type: 'bar',
+        data: {
+          labels: topMunSorted.map(m => m[0].replace(" - RJ", "")),
+          datasets: [{
+            label: 'Ocorrências Registradas',
+            data: topMunSorted.map(m => m[1]),
+            backgroundColor: '#06b6d4',
+            borderRadius: 4
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8' } },
+            y: { grid: { color: '#1e293b' }, ticks: { color: '#94a3b8', font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    function renderizarTabela() {
+      const tbody = document.getElementById("tabelaEventosBody");
+      tbody.innerHTML = "";
+
+      const totalRegistros = registrosFiltrados.length;
+      const totalPaginas = Math.ceil(totalRegistros / itensPorPagina) || 1;
+      
+      document.getElementById("contadorTabela").textContent = `${totalRegistros} registro(s) encontrado(s) no filtro atual`;
+      document.getElementById("pageInfo").textContent = `Pág. ${paginaAtual} / ${totalPaginas}`;
+      document.getElementById("btnPrevPage").disabled = (paginaAtual <= 1);
+      document.getElementById("btnNextPage").disabled = (paginaAtual >= totalPaginas);
+
+      if (totalRegistros === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-slate-500">Nenhum registro encontrado para os critérios selecionados.</td></tr>`;
+        return;
+      }
+
+      const inicio = (paginaAtual - 1) * itensPorPagina;
+      const fim = inicio + itensPorPagina;
+      const paginaDados = registrosFiltrados.slice(inicio, fim);
+
+      paginaDados.forEach(r => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-800/40 transition";
+
+        // Badges de tipologia
+        let tagsTipo = [];
+        if (r.desliz > 0) tagsTipo.push(`<span class="px-1.5 py-0.5 rounded text-[10px] bg-red-950 text-red-400 border border-red-800/60 font-semibold">${r.desliz} Deslizamento(s)</span>`);
+        if (r.inund > 0) tagsTipo.push(`<span class="px-1.5 py-0.5 rounded text-[10px] bg-blue-950 text-blue-400 border border-blue-800/60 font-semibold">${r.inund} Inundação</span>`);
+        if (r.arvore > 0) tagsTipo.push(`<span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800/60 font-semibold">${r.arvore} Árvore</span>`);
+        if (r.desabam > 0) tagsTipo.push(`<span class="px-1.5 py-0.5 rounded text-[10px] bg-amber-950 text-amber-400 border border-amber-800/60 font-semibold">${r.desabam} Desabamento</span>`);
+
+        // Badges de danos humanos
+        let danosText = [];
+        if (r.obitos > 0) danosText.push(`<span class="text-red-400 font-bold">${r.obitos} Óbito(s)</span>`);
+        if (r.desab > 0) danosText.push(`<span class="text-amber-400">${r.desab} Desabrig.</span>`);
+        if (r.desal > 0) danosText.push(`<span class="text-sky-400">${r.desal} Desaloj.</span>`);
+        const resumoDanos = danosText.length > 0 ? danosText.join(" | ") : `<span class="text-slate-500">Sem vítimas</span>`;
+
+        // Status / Ação
+        let acoes = [];
+        if (r.decreto) acoes.push(`<span class="text-[10px] bg-purple-900/40 text-purple-300 border border-purple-700/50 px-2 py-0.5 rounded block text-center">${r.decreto}</span>`);
+        if (r.pa > 0) acoes.push(`<span class="text-[10px] bg-emerald-900/40 text-emerald-300 border border-emerald-700/50 px-2 py-0.5 rounded block text-center mt-1">${r.pa} P. Apoio</span>`);
+        if (r.sirenes > 0) acoes.push(`<span class="text-[10px] bg-red-900/40 text-red-300 border border-red-700/50 px-2 py-0.5 rounded block text-center mt-1">${r.sirenes} Sirenes</span>`);
+        if (acoes.length === 0) acoes.push(`<span class="text-slate-500 text-[10px] block text-center">Rotina / Monitoramento</span>`);
+
+        tr.innerHTML = `
+          <td class="px-4 py-3 font-mono text-[11px] text-slate-400 whitespace-nowrap">
+            <div>${r.data || '-'}</div>
+            <div class="text-slate-500 text-[10px]">${r.hora || ''}</div>
+          </td>
+          <td class="px-4 py-3 text-slate-300 font-medium whitespace-nowrap">${r.redec}</td>
+          <td class="px-4 py-3 font-semibold text-white whitespace-nowrap">${r.mun}</td>
+          <td class="px-4 py-3 max-w-sm">
+            <div class="flex flex-wrap gap-1 mb-1.5">${tagsTipo.join("")}</div>
+            <p class="text-slate-400 text-[11px] leading-relaxed line-clamp-2" title="${r.desc}">${r.desc || 'Sem relatório descritivo informado.'}</p>
+          </td>
+          <td class="px-4 py-3 text-center font-bold text-white">${r.total_ocorr || 0}</td>
+          <td class="px-4 py-3 text-center text-[11px]">${resumoDanos}</td>
+          <td class="px-4 py-3">${acoes.join("")}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Leitura e Parsing Dinâmico de Novo CSV
+    function handleCsvUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          const rows = results.data;
+          if (rows && rows.length > 0) {
+            processarNovosRegistrosCsv(rows, file.name);
+          }
+        },
+        error: function(err) {
+          alert("Erro ao ler o arquivo CSV: " + err.message);
+        }
+      });
+    }
+
+    function processarNovosRegistrosCsv(rows, fileName) {
+      const novosRegistros = [];
+      rows.forEach((row, idx) => {
+        const getNum = (colName) => {
+          const val = row[colName] || row[colName.replace("\n", " ")] || 0;
+          return parseFloat(String(val).replace(",", ".")) || 0;
+        };
+
+        const redecRaw = row['REDEC'] || 'NÃO INFORMADO';
+        const munRaw = row['MUNICÍPIO'] || 'GERAL / CEMADEN';
+
+        novosRegistros.push({
+          id: idx + 1,
+          data: row['DATA'] || '',
+          hora: (row['HORA'] || '').slice(0, 5),
+          redec: redecRaw.trim().replace('–', '-'),
+          mun: munRaw.trim(),
+          desc: (row['DESCRIÇÃO'] || '').trim(),
+          desab: getNum('DESABRIGADOS\n(Nº)'),
+          desal: getNum('DESALOJADOS\n(Nº)'),
+          obitos: getNum('ÓBITOS\n(Nº)'),
+          feridos: getNum('FERIDOS / ENFERMOS\n(Nº)'),
+          desap: getNum('DESAPARECIDOS\n(Nº)'),
+          afetados: getNum('TOTAL DE AFETADOS\n(Nº)'),
+          inund: getNum('INUNDAÇÃO / ALAGAMENTO / ENXURRADA (N°)'),
+          desliz: getNum('DESLIZAMENTO\n(Nº)'),
+          desabam: getNum('DESABAMENTO/\nQUEDA DE ESTRUTURAS\n(Nº)'),
+          arvore: getNum('QUEDA DE ÁRVORE\n(Nº)'),
+          total_ocorr: getNum('SOMATÓRIO DE OCORRÊNCIAS'),
+          pa: getNum('PONTOS DE APOIO\n(Nº)'),
+          sirenes: getNum('SIRENE - MOBILIZAÇÃO\n(Nº)'),
+          decreto: row['DECRETO'] || ''
+        });
+      });
+
+      registrosOperacionais = novosRegistros;
+      document.getElementById("statusRegistros").textContent = `Base Carregada (${novosRegistros.length} linhas)`;
+      document.getElementById("timestampInfo").textContent = `Arquivo: ${fileName}`;
+
+      popularFiltrosSelect();
+      aplicarFiltrosEAtualizar();
+      alert(`Base de dados atualizada com sucesso! ${novosRegistros.length} eventos processados.`);
+    }
+  </script>
+</body>
+</html>
