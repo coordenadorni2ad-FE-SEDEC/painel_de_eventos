@@ -39,17 +39,27 @@
       border-bottom: 1px solid var(--border-color);
       margin-bottom: 24px;
     }
-    .header-title-box { display: flex; align-items: center; gap: 14px; }
-    .badge-icon {
-      background: rgba(249, 115, 22, 0.15);
-      color: var(--orange);
-      border: 1px solid rgba(249, 115, 22, 0.35);
-      border-radius: 10px;
-      padding: 10px;
+    .header-title-box { display: flex; align-items: center; gap: 16px; }
+    
+    /* LOGO COM FALLBACK */
+    .brand-logo-container {
+      width: 54px;
+      height: 54px;
       display: flex;
       align-items: center;
       justify-content: center;
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      flex-shrink: 0;
     }
+    .brand-logo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
     .header h1 { font-size: 22px; font-weight: 800; color: #fff; }
     .header p { font-size: 13px; color: var(--text-muted); }
 
@@ -105,7 +115,7 @@
     .kpi-val { font-size: 26px; font-weight: 800; margin: 4px 0; color: #fff; }
     .kpi-sub { font-size: 11px; color: var(--text-muted); }
 
-    /* FILTROS */
+    /* BARRA DE FILTROS & CONTROLE DE PERÍODO */
     .filter-box {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -113,8 +123,9 @@
       padding: 16px;
       margin-bottom: 24px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
+      align-items: flex-end;
     }
     .filter-group label {
       display: block;
@@ -129,14 +140,31 @@
       background: #0f172a;
       border: 1px solid var(--border-color);
       color: #fff;
-      padding: 9px 12px;
+      padding: 8px 10px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
       outline: none;
     }
+    .filter-group input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
+      cursor: pointer;
+    }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--orange); }
+    .btn-reset-dates {
+      background: #0f172a;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      height: 35px;
+      transition: all 0.2s;
+    }
+    .btn-reset-dates:hover { color: #fff; border-color: var(--orange); }
 
-    /* VISUALIZAÇÃO GRÁFICA / BARRAS */
+    /* GRÁFICOS / BARRAS */
     .dashboard-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
@@ -229,14 +257,13 @@
   <!-- CABEÇALHO -->
   <div class="header">
     <div class="header-title-box">
-      <div class="badge-icon">
-        <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-        </svg>
+      <!-- Imagem da Logo na mesma pasta com fallback -->
+      <div class="brand-logo-container">
+        <img id="imgLogo" src="logo.png" alt="Logo Defesa Civil" onerror="tratarErroLogo(this)">
       </div>
       <div>
         <h1>Painel Operacional - REDECs / SEDEC-RJ</h1>
-        <p id="subHeaderStatus">Conectando à base de dados remota...</p>
+        <p id="subHeaderStatus">Carregando informações...</p>
       </div>
     </div>
     
@@ -259,7 +286,7 @@
     <div class="kpi-card" style="border-left: 3px solid var(--orange);">
       <div class="kpi-label">Ocorrências Totais</div>
       <div class="kpi-val" id="kpiOcorr">-</div>
-      <div class="kpi-sub">Total registrado</div>
+      <div class="kpi-sub">Total registrado no período</div>
     </div>
     <div class="kpi-card" style="border-left: 3px solid var(--red);">
       <div class="kpi-label" style="color: var(--red);">Óbitos</div>
@@ -288,8 +315,19 @@
     </div>
   </div>
 
-  <!-- FILTROS -->
+  <!-- FILTROS COM CONTROLE DE PERÍODO -->
   <div class="filter-box">
+    <div class="filter-group">
+      <label>Data Inicial</label>
+      <input type="date" id="dataInicio">
+    </div>
+    <div class="filter-group">
+      <label>Data Final</label>
+      <input type="date" id="dataFim">
+    </div>
+    <div>
+      <button id="btnLimparPeriodo" class="btn-reset-dates" title="Redefinir para todo o período histórico">Todo o Período</button>
+    </div>
     <div class="filter-group">
       <label>Região (REDEC)</label>
       <select id="selRedec">
@@ -313,7 +351,7 @@
         <option value="danos">Com Danos Humanos (Vítimas)</option>
       </select>
     </div>
-    <div class="filter-group">
+    <div class="filter-group" style="grid-column: span 2;">
       <label>Busca Textual</label>
       <input type="text" id="inputBusca" placeholder="Pesquisar relato, rua ou bairro...">
     </div>
@@ -324,7 +362,7 @@
     <div class="chart-panel">
       <div class="chart-header">
         <div class="chart-title">Ocorrências por REDEC</div>
-        <span style="font-size: 11px; color: var(--text-muted);">Volume Operacional</span>
+        <span style="font-size: 11px; color: var(--text-muted);">Volume Operacional no Período</span>
       </div>
       <div id="containerBarrasRedec"></div>
     </div>
@@ -371,11 +409,10 @@
 
   <script>
     // =========================================================================
-    // COLE AQUI A URL GERADA NO GOOGLE APPS SCRIPT
+    // URL CONFIGURADA DO SEU GOOGLE APPS SCRIPT
     // =========================================================================
     const CONFIG_URL_PLANILHA = "https://script.google.com/macros/s/AKfycbwC7sf80Z2HSS2PewAnM8T_AAOA9rn8KNGEA_pVoA0xcevecSisJrBPQi472V65Qo0l/exec"; 
     
-    // Intervalo de checagem automática em segundo plano (em milissegundos)
     const INTERVALO_AUTO_SYNC_MS = 5 * 60 * 1000; // 5 minutos
 
     let todosRegistros = [];
@@ -383,18 +420,57 @@
     let pagina = 1;
     const porPagina = 8;
 
-    window.addEventListener("DOMContentLoaded", () => {
-      configurarEventos();
-      carregarDadosComCache();
-      
-      // Auto-refresh silencioso
-      setInterval(() => {
-        consultarPlanilhaRemota(true);
-      }, INTERVALO_AUTO_SYNC_MS);
-    });
+    // Fallback inteligente caso a logo tenha extensão diferente (.png, .svg, .jpg)
+    let tentativaLogo = 0;
+    function tratarErroLogo(img) {
+      const extensoes = ['logo.svg', 'logo.jpg', 'logo.jpeg'];
+      if (tentativaLogo < extensoes.length) {
+        img.src = extensoes[tentativaLogo];
+        tentativaLogo++;
+      } else {
+        // Se não encontrar nenhum arquivo, renderiza o escudo padrão
+        img.parentElement.innerHTML = `
+          <svg width="28" height="28" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        `;
+      }
+    }
 
-    function normalizar(t) {
-      return (t || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+    // FORMATAÇÃO E PARSE DE DATAS
+    function normalizarDataParaISO(dataBruta) {
+      if (!dataBruta) return '';
+      const str = String(dataBruta).trim();
+      
+      // Formato YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+        return str.substring(0, 10);
+      }
+      // Formato DD/MM/YYYY
+      if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+        const partes = str.substring(0, 10).split('/');
+        return `${partes[2]}-${partes[1]}-${partes[0]}`;
+      }
+      return '';
+    }
+
+    function formatarParaDDMMAAAA(dataISO) {
+      if (!dataISO) return '-';
+      const partes = dataISO.split('-');
+      if (partes.length === 3) {
+        return `${partes[2]}/${partes[1]}/${partes[0]}`;
+      }
+      return dataISO;
+    }
+
+    function formatarHora(horaBruta) {
+      if (!horaBruta) return '';
+      const str = String(horaBruta).trim();
+      if (str.includes("T")) {
+        const hora = str.split("T")[1];
+        return hora ? hora.substring(0, 5) : '';
+      }
+      return str.substring(0, 5);
     }
 
     function parseNum(val) {
@@ -402,6 +478,10 @@
       const clean = String(val).replace(/\./g, "").replace(",", ".");
       const n = parseFloat(clean);
       return isNaN(n) ? 0 : n;
+    }
+
+    function normalizarTexto(t) {
+      return (t || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
     }
 
     function extrairObjetoPadronizado(raw) {
@@ -430,9 +510,12 @@
       const redecRaw = raw[kRedec] ? String(raw[kRedec]).trim().replace('–', '-') : 'ESTADUAL / GERAL';
       const munRaw = raw[kMun] ? String(raw[kMun]).trim() : 'MUNICÍPIO NÃO INFORMADO';
 
+      const dataISO = normalizarDataParaISO(raw[kData]);
+
       return {
-        d: raw[kData] ? String(raw[kData]).substring(0, 10) : '',
-        h: raw[kHora] ? String(raw[kHora]).substring(0, 5) : '',
+        d_iso: dataISO,                                 // Para filtros e ordenação interna
+        d_formatada: formatarParaDDMMAAAA(dataISO),      // Para exibição na tabela em DD/MM/AAAA
+        h: formatarHora(raw[kHora]),
         m: munRaw,
         r: redecRaw,
         c: raw[kDesc] ? String(raw[kDesc]).trim() : '',
@@ -452,7 +535,15 @@
       };
     }
 
-    // Gerenciamento de Cache Local
+    window.addEventListener("DOMContentLoaded", () => {
+      configurarEventos();
+      carregarDadosComCache();
+      
+      setInterval(() => {
+        consultarPlanilhaRemota(true);
+      }, INTERVALO_AUTO_SYNC_MS);
+    });
+
     function carregarDadosComCache() {
       const cacheData = localStorage.getItem("redecs_data_cache");
       const cacheTime = localStorage.getItem("redecs_data_time");
@@ -461,7 +552,8 @@
         try {
           const parsed = JSON.parse(cacheData);
           todosRegistros = parsed;
-          atualizarStatusConexao("online", `Dados do Cache (${formatarDataHora(cacheTime)})`);
+          atualizarStatusConexao("online", `Dados em Cache (${formatarDataHora(cacheTime)})`);
+          definirLimitesDatasIniciais();
           popularDropdowns();
           filtrar();
         } catch (e) {
@@ -469,19 +561,10 @@
         }
       }
 
-      // Consulta remota imediata para verificar se a planilha mudou
       consultarPlanilhaRemota(false);
     }
 
     async function consultarPlanilhaRemota(isBackground = false) {
-      if (!CONFIG_URL_PLANILHA || CONFIG_URL_PLANILHA.includes("SUA_URL")) {
-        if (todosRegistros.length === 0) {
-          atualizarStatusConexao("offline", "Insira a URL do Apps Script no código");
-          document.getElementById("subHeaderStatus").textContent = "Abra o HTML em um editor de texto e insira a URL da sua planilha na linha 237.";
-        }
-        return;
-      }
-
       const syncBtn = document.getElementById("btnSync");
       if (!isBackground) {
         syncBtn.classList.add("spinning");
@@ -489,7 +572,6 @@
       }
 
       try {
-        // Parametro timestamp para evitar cache do próprio navegador
         const urlFetch = CONFIG_URL_PLANILHA + (CONFIG_URL_PLANILHA.includes("?") ? "&" : "?") + "t=" + new Date().getTime();
         const resp = await fetch(urlFetch);
         const json = await resp.json();
@@ -499,15 +581,15 @@
           const cacheAnterior = localStorage.getItem("redecs_data_cache");
           const novoJsonString = JSON.stringify(dadosPadronizados);
 
-          // Só re-renderiza se houve alteração real nos dados
           if (cacheAnterior !== novoJsonString || todosRegistros.length === 0) {
             todosRegistros = dadosPadronizados;
             localStorage.setItem("redecs_data_cache", novoJsonString);
             localStorage.setItem("redecs_data_time", new Date().toISOString());
             
+            definirLimitesDatasIniciais();
             popularDropdowns();
             filtrar();
-            atualizarStatusConexao("online", `Atualizado agora (${dadosPadronizados.length} linhas)`);
+            atualizarStatusConexao("online", `Atualizado (${dadosPadronizados.length} registros)`);
           } else {
             atualizarStatusConexao("online", `Sincronizado (Sem novas alterações)`);
           }
@@ -515,13 +597,33 @@
       } catch (err) {
         console.error("Erro na sincronização:", err);
         if (todosRegistros.length > 0) {
-          atualizarStatusConexao("syncing", "Offline (Operando via Cache)");
+          atualizarStatusConexao("syncing", "Offline (Exibindo Cache)");
         } else {
-          atualizarStatusConexao("offline", "Falha de Conexão com o Sheets");
+          atualizarStatusConexao("offline", "Falha ao conectar à Planilha");
         }
       } finally {
         syncBtn.classList.remove("spinning");
       }
+    }
+
+    function definirLimitesDatasIniciais() {
+      const datasValidas = todosRegistros.map(r => r.d_iso).filter(d => d);
+      if (datasValidas.length === 0) return;
+
+      datasValidas.sort();
+      const minData = datasValidas[0];
+      const maxData = datasValidas[datasValidas.length - 1];
+
+      const inputIni = document.getElementById("dataInicio");
+      const inputFim = document.getElementById("dataFim");
+
+      if (!inputIni.value) inputIni.value = minData;
+      if (!inputFim.value) inputFim.value = maxData;
+
+      inputIni.min = minData;
+      inputIni.max = maxData;
+      inputFim.min = minData;
+      inputFim.max = maxData;
     }
 
     function atualizarStatusConexao(tipo, texto) {
@@ -563,6 +665,16 @@
 
     function configurarEventos() {
       document.getElementById("btnSync").addEventListener("click", () => consultarPlanilhaRemota(false));
+      document.getElementById("dataInicio").addEventListener("change", filtrar);
+      document.getElementById("dataFim").addEventListener("change", filtrar);
+      
+      document.getElementById("btnLimparPeriodo").addEventListener("click", () => {
+        document.getElementById("dataInicio").value = "";
+        document.getElementById("dataFim").value = "";
+        definirLimitesDatasIniciais();
+        filtrar();
+      });
+
       document.getElementById("selRedec").addEventListener("change", filtrar);
       document.getElementById("selMunicipio").addEventListener("change", filtrar);
       document.getElementById("selTipo").addEventListener("change", filtrar);
@@ -578,29 +690,39 @@
     }
 
     function filtrar() {
+      const dtIni = document.getElementById("dataInicio").value;
+      const dtFim = document.getElementById("dataFim").value;
       const redec = document.getElementById("selRedec").value;
       const mun = document.getElementById("selMunicipio").value;
       const tipo = document.getElementById("selTipo").value;
-      const texto = normalizar(document.getElementById("inputBusca").value);
+      const texto = normalizarTexto(document.getElementById("inputBusca").value);
 
       filtrados = todosRegistros.filter(item => {
+        // Filtro de Período
+        if (dtIni && item.d_iso && item.d_iso < dtIni) return false;
+        if (dtFim && item.d_iso && item.d_iso > dtFim) return false;
+
+        // Filtro Geográfico
         const matchRedec = (redec === "TODAS") || (item.r === redec);
         const matchMun = (mun === "TODOS") || (item.m === mun);
+        if (!matchRedec || !matchMun) return false;
         
+        // Filtro de Tipologia
         let matchTipo = true;
         if (tipo === "desliz") matchTipo = item.dz > 0;
         else if (tipo === "inund") matchTipo = item.in > 0;
         else if (tipo === "arvore") matchTipo = item.ar > 0;
         else if (tipo === "desabam") matchTipo = item.es > 0;
         else if (tipo === "danos") matchTipo = (item.ob > 0 || item.db > 0 || item.dl > 0);
+        if (!matchTipo) return false;
 
-        let matchTexto = true;
+        // Busca Textual
         if (texto) {
-          const comp = normalizar(`${item.r} ${item.m} ${item.c} ${item.dc}`);
-          matchTexto = comp.includes(texto);
+          const comp = normalizarTexto(`${item.r} ${item.m} ${item.c} ${item.dc}`);
+          if (!comp.includes(texto)) return false;
         }
 
-        return matchRedec && matchMun && matchTipo && matchTexto;
+        return true;
       });
 
       pagina = 1;
@@ -640,47 +762,55 @@
         danosMap[item.r] = (danosMap[item.r] || 0) + (item.dl || 0);
       });
 
-      // 1. Barras de Ocorrências
+      // 1. Ocorrências
       const cOcorr = document.getElementById("containerBarrasRedec");
       cOcorr.innerHTML = "";
       const sortOcorr = Object.entries(redecMap).sort((a, b) => b[1] - a[1]);
       const maxOcorr = sortOcorr.length > 0 ? sortOcorr[0][1] : 1;
 
-      sortOcorr.forEach(([redec, val]) => {
-        const perc = Math.round((val / maxOcorr) * 100);
-        cOcorr.innerHTML += `
-          <div class="bar-row">
-            <div class="bar-label-line">
-              <span style="font-weight: 600; color: #cbd5e1;">${redec.replace("REDEC ", "R-")}</span>
-              <span style="font-weight: 700; color: #fff;">${val}</span>
+      if (sortOcorr.length === 0) {
+        cOcorr.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:10px 0;">Sem ocorrências registradas no período selecionado.</div>`;
+      } else {
+        sortOcorr.forEach(([redec, val]) => {
+          const perc = Math.round((val / maxOcorr) * 100);
+          cOcorr.innerHTML += `
+            <div class="bar-row">
+              <div class="bar-label-line">
+                <span style="font-weight: 600; color: #cbd5e1;">${redec.replace("REDEC ", "R-")}</span>
+                <span style="font-weight: 700; color: #fff;">${val}</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: ${perc}%; background: var(--orange);"></div>
+              </div>
             </div>
-            <div class="bar-track">
-              <div class="bar-fill" style="width: ${perc}%; background: var(--orange);"></div>
-            </div>
-          </div>
-        `;
-      });
+          `;
+        });
+      }
 
-      // 2. Barras de Desalojados
+      // 2. Desalojados
       const cDanos = document.getElementById("containerBarrasDanos");
       cDanos.innerHTML = "";
       const sortDanos = Object.entries(danosMap).sort((a, b) => b[1] - a[1]);
       const maxDanos = sortDanos.length > 0 ? sortDanos[0][1] : 1;
 
-      sortDanos.slice(0, 7).forEach(([redec, val]) => {
-        const perc = Math.round((val / (maxDanos || 1)) * 100);
-        cDanos.innerHTML += `
-          <div class="bar-row">
-            <div class="bar-label-line">
-              <span style="font-weight: 600; color: #cbd5e1;">${redec.replace("REDEC ", "R-")}</span>
-              <span style="font-weight: 700; color: var(--blue);">${Number(val).toLocaleString('pt-BR')} pessoas</span>
+      if (sortDanos.length === 0) {
+        cDanos.innerHTML = `<div style="font-size:12px; color:var(--text-muted); padding:10px 0;">Sem desalojados no período selecionado.</div>`;
+      } else {
+        sortDanos.slice(0, 7).forEach(([redec, val]) => {
+          const perc = Math.round((val / (maxDanos || 1)) * 100);
+          cDanos.innerHTML += `
+            <div class="bar-row">
+              <div class="bar-label-line">
+                <span style="font-weight: 600; color: #cbd5e1;">${redec.replace("REDEC ", "R-")}</span>
+                <span style="font-weight: 700; color: var(--blue);">${Number(val).toLocaleString('pt-BR')} pessoas</span>
+              </div>
+              <div class="bar-track">
+                <div class="bar-fill" style="width: ${perc}%; background: var(--blue);"></div>
+              </div>
             </div>
-            <div class="bar-track">
-              <div class="bar-fill" style="width: ${perc}%; background: var(--blue);"></div>
-            </div>
-          </div>
-        `;
-      });
+          `;
+        });
+      }
     }
 
     function renderizarTabela() {
@@ -695,7 +825,7 @@
       document.getElementById("btnProx").disabled = (pagina >= totalPags);
 
       if (total === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Nenhum dado encontrado com os filtros aplicados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 30px; color: var(--text-muted);">Nenhum dado encontrado para o período ou critérios informados.</td></tr>`;
         return;
       }
 
@@ -706,39 +836,3 @@
         let badgesTipo = "";
         if (item.dz > 0) badgesTipo += `<span class="badge badge-desliz">${item.dz} Deslizamento</span>`;
         if (item.in > 0) badgesTipo += `<span class="badge badge-inund">${item.in} Inundação</span>`;
-        if (item.ar > 0) badgesTipo += `<span class="badge badge-arvore">${item.ar} Árvore</span>`;
-        if (item.es > 0) badgesTipo += `<span class="badge badge-desabam">${item.es} Desabamento</span>`;
-
-        let danosStr = [];
-        if (item.ob > 0) danosStr.push(`<span style="color:var(--red); font-weight:700;">${item.ob} Óbito(s)</span>`);
-        if (item.db > 0) danosStr.push(`<span style="color:var(--amber); font-weight:600;">${item.db} Desabrig.</span>`);
-        if (item.dl > 0) danosStr.push(`<span style="color:var(--blue);">${item.dl} Desaloj.</span>`);
-        const resumoDanos = danosStr.length > 0 ? danosStr.join("<br>") : `<span style="color:var(--text-muted);">Sem vítimas</span>`;
-
-        let acoes = [];
-        if (item.dc) acoes.push(`<span class="badge badge-decreto">${item.dc}</span>`);
-        if (item.pa > 0) acoes.push(`<span class="badge badge-arvore">${item.pa} P. Apoio</span>`);
-        if (acoes.length === 0) acoes.push(`<span style="color:var(--text-muted); font-size:11px;">Monitoramento</span>`);
-
-        tbody.innerHTML += `
-          <tr>
-            <td style="white-space: nowrap; font-family: monospace; color: var(--text-muted);">
-              <div>${item.d || '-'}</div>
-              <div style="font-size: 10px;">${item.h || ''}</div>
-            </td>
-            <td style="white-space: nowrap; font-weight: 500;">${item.r}</td>
-            <td style="white-space: nowrap; font-weight: 700; color: #fff;">${item.m}</td>
-            <td>
-              <div style="margin-bottom: 4px;">${badgesTipo}</div>
-              <div style="color: var(--text-muted); font-size: 11px;">${item.c || 'Relato não preenchido.'}</div>
-            </td>
-            <td style="text-align: center; font-weight: 800; color: #fff; font-size: 14px;">${item.o}</td>
-            <td style="text-align: center; font-size: 11px;">${resumoDanos}</td>
-            <td style="text-align: center;">${acoes.join("")}</td>
-          </tr>
-        `;
-      });
-    }
-  </script>
-</body>
-</html>
