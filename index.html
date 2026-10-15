@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Executivo de Defesa Civil - SEDEC-RJ</title>
+  <title>Painel Integrado de Defesa Civil - SEDEC-RJ</title>
   
   <!-- Dependências do Leaflet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 
-  <!-- Arquivo mapa.js -->
+  <!-- Arquivo mapa.js (com a variável GEOJSON) -->
   <script src="mapa.js"></script>
 
   <style>
@@ -25,6 +25,7 @@
       --blue: #38bdf8;
       --green: #10b981;
       --amber: #f59e0b;
+      --purple: #a855f7;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -178,21 +179,38 @@
     }
     .btn-preset:hover, .btn-preset.active { background: var(--orange); color: #fff; border-color: var(--orange); }
 
-    /* LAYOUT EM 2 COLUNAS */
+    /* =========================================================================
+       LAYOUT ROBUSTO: IMPEDE O ENCOLHIMENTO DO MAPA
+       ========================================================================= */
     .main-workspace {
       display: grid;
-      grid-template-columns: 1.12fr 0.88fr;
+      grid-template-columns: minmax(0, 1.15fr) minmax(420px, 0.85fr);
       gap: 16px;
       align-items: start;
     }
 
     @media (max-width: 1080px) {
-      .main-workspace { grid-template-columns: 1fr; }
-      .col-right { position: static !important; }
+      .main-workspace {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      .col-right {
+        position: static !important;
+      }
     }
 
-    .col-left { display: flex; flex-direction: column; gap: 12px; }
-    .col-right { position: sticky; top: 12px; }
+    .col-left {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .col-right {
+      min-width: 0;
+      width: 100%;
+      position: sticky;
+      top: 12px;
+    }
 
     /* KPIS GERAIS */
     .kpi-grid {
@@ -240,13 +258,14 @@
     }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--orange); }
 
-    /* PAINEL DO MAPA À DIREITA */
+    /* MAPA */
     .map-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 10px;
       padding: 12px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      width: 100%;
     }
     .map-header {
       display: flex;
@@ -268,8 +287,9 @@
     }
     .btn-reset-map:hover { background: #334155; }
 
+    /* CSS ORIGINAL DO SEU MAPA */
     #map {
-      height: 610px;
+      height: 580px;
       width: 100%;
       min-width: 100%;
       border-radius: 6px;
@@ -277,7 +297,7 @@
     }
 
     .mun-tooltip {
-      background: rgba(22, 36, 63, 0.94);
+      background: rgba(22, 36, 63, 0.92);
       color: #fff;
       border: none;
       border-radius: 4px;
@@ -285,30 +305,56 @@
       font-family: sans-serif;
       font-size: 11px;
       font-weight: 600;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
       pointer-events: none;
     }
-    .leaflet-popup-content-wrapper { border-radius: 6px; font-family: sans-serif; font-size: 12px; }
-    .leaflet-popup-content { margin: 8px 12px; line-height: 1.4; }
-    .popup-nome { font-weight: 700; font-size: 13px; margin-bottom: 2px; color: #16243F; }
-    .popup-redec { font-family: monospace; font-size: 10.5px; color: #5B6B82; margin-bottom: 4px; }
+
+    .leaflet-popup-content-wrapper {
+      border-radius: 6px;
+      font-family: sans-serif;
+      font-size: 13px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+    .leaflet-popup-content {
+      margin: 10px 14px;
+      line-height: 1.4;
+    }
+    .popup-nome {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 2px;
+      color: #16243F;
+    }
+    .popup-redec {
+      font-family: monospace;
+      font-size: 11px;
+      color: #5B6B82;
+      margin-bottom: 6px;
+    }
 
     .map-legend {
       background: white;
       border: 1px solid #C7CDD6;
       border-radius: 5px;
-      padding: 6px 10px;
+      padding: 8px 10px;
       font-family: sans-serif;
-      font-size: 10.5px;
-      color: #334155;
+      font-size: 11px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      color: #16243F;
       margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
     .map-legend-item { display: flex; align-items: center; gap: 5px; }
-    .map-legend-swatch { width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0, 0, 0, 0.15); }
+    .map-legend-swatch {
+      width: 13px;
+      height: 13px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      flex-shrink: 0;
+    }
 
     /* GRÁFICOS */
     .dashboard-grid {
@@ -477,19 +523,16 @@
     <div class="col-right">
       <div class="map-panel" id="painelMapa">
         <div class="map-header">
-          <div class="chart-title">Mapa Territorial do Rio de Janeiro</div>
+          <div class="chart-title">Mapa do Estado do Rio de Janeiro</div>
           <button class="btn-reset-map" id="btnResetMap">Enquadrar Estado (RJ)</button>
         </div>
         
         <div id="map"></div>
 
         <div class="map-legend">
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#D4DAE3;"></div> Sem chamados</div>
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#fed7aa;"></div> 1 - 5</div>
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#fb923c;"></div> 6 - 20</div>
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#ea580c;"></div> 21 - 50</div>
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#b91c1c;"></div> > 50</div>
-          <div class="map-legend-item">🔴 Ponto de Evento</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#2454A6;"></div> Na Regional</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#D4DAE3;"></div> Fora da Seleção</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#ea580c; border-radius:50%;"></div> Ponto de Ocorrência</div>
         </div>
       </div>
     </div>
@@ -498,7 +541,7 @@
 
   <script>
     /* =========================================================================
-       1. MAPEAMENTO OFICIAL DOS 92 MUNICÍPIOS DO RJ -> REDECs
+       1. MAPEAMENTO OFICIAL DOS 92 MUNICÍPIOS DO RJ -> REDECs (DO SEU PROJETO)
        ========================================================================= */
     const MAPA_REDECS_RJ = {
       "Angra dos Reis": "REDEC 4 - Costa Verde", "Aperibé": "REDEC 11 - Noroeste", "Araruama": "REDEC 9 - Baixada Litorânea",
@@ -551,10 +594,11 @@
     let pagina = 1;
     const porPagina = 8;
 
-    /* Variáveis do Mapa Leaflet */
+    /* Variáveis do Mapa Leaflet do seu projeto */
     let mapInstance = null;
     let markersLayerGroup = null;
     let currentScopeBounds = null;
+    let popupCloseTimer = null;
     let redecAtiva = "ALL";
     let MUNICIPIOS_ESCOPO = [];
 
@@ -625,35 +669,62 @@
     }
 
     /* =========================================================================
-       INICIALIZAÇÃO DO MAPA ESRI CANVAS E POLÍGONOS
+       2. LÓGICA DE ESTILIZAÇÃO E MAPA IDÊNTICA AO SEU OUTRO PROJETO
        ========================================================================= */
+    function obterEstiloFeature(feature, escopoSet) {
+      const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
+      const isNoEscopo = escopoSet.has(normalizarTexto(canonico));
+
+      if (isNoEscopo) {
+        return {
+          fillColor: "#2454A6",
+          fillOpacity: 0.80,
+          color: "#ffffff",
+          weight: 1.5,
+          opacity: 1
+        };
+      }
+      
+      return {
+        fillColor: "#D4DAE3",
+        fillOpacity: 0.45,
+        color: "#B0B8C4",
+        weight: 0.8,
+        opacity: 1
+      };
+    }
+
     function initMap() {
       if (!mapInstance) {
-        mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false }).setView([-22.35, -42.7], 7.5);
+        mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false });
         
+        // Camada base Esri Light Gray Canvas
         L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
           attribution: "Tiles &copy; Esri &mdash; SEDEC RJ",
           maxZoom: 14
         }).addTo(mapInstance);
 
         markersLayerGroup = L.layerGroup().addTo(mapInstance);
-      }
 
-      // Verificação de segurança: aguarda o mapa.js ser carregado
-      if (typeof GEOJSON === "undefined") {
-        setTimeout(initMap, 200);
-        return;
+        mapInstance.on("popupclose", function() {
+          popupCloseTimer = setTimeout(function() {
+            let hasOpen = false;
+            mapInstance.eachLayer(l => { if (l instanceof L.Popup) hasOpen = true; });
+            if (!hasOpen && currentScopeBounds && currentScopeBounds.isValid()) {
+              mapInstance.fitBounds(currentScopeBounds, { padding: [14, 14], animate: true, duration: 0.6 });
+            }
+          }, 80);
+        });
+
+        mapInstance.on("popupopen", function() {
+          if (popupCloseTimer) {
+            clearTimeout(popupCloseTimer);
+            popupCloseTimer = null;
+          }
+        });
       }
 
       atualizarCamadasMapa();
-    }
-
-    function obterCorPorQuantidade(qtd) {
-      if (qtd > 50) return '#b91c1c'; // Vermelho escuro
-      if (qtd > 20) return '#ea580c'; // Laranja forte
-      if (qtd > 5)  return '#fb923c'; // Laranja médio
-      if (qtd > 0)  return '#fed7aa'; // Pêssego suave
-      return '#D4DAE3';               // Cinza claro (sem chamados)
     }
 
     function atualizarCamadasMapa() {
@@ -662,103 +733,87 @@
       atualizarMunicipiosEscopo();
       const ESCOPO_SET = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
 
-      // Contagem de ocorrências por município
-      const contagemMun = {};
-      filtrados.forEach(item => {
-        const cNome = getNomeCanonicoMunicipio(item.m);
-        const norm = normalizarTexto(cNome);
-        if (norm) contagemMun[norm] = (contagemMun[norm] || 0) + (item.o || 1);
-      });
-
       if (window._geojsonLayer) {
         mapInstance.removeLayer(window._geojsonLayer);
       }
       markersLayerGroup.clearLayers();
 
-      const dadosGeoJson = (typeof GEOJSON !== "undefined") ? GEOJSON : (window.GEOJSON || window.geojsonRio);
+      // Busca direta do objeto GEOJSON definido no mapa.js
+      let dadosGeoJson = null;
+      try {
+        if (typeof GEOJSON !== "undefined") dadosGeoJson = GEOJSON;
+        else if (window.GEOJSON) dadosGeoJson = window.GEOJSON;
+        else if (window.geojsonRio) dadosGeoJson = window.geojsonRio;
+      } catch (e) {
+        console.warn("Aguardando carregamento de GEOJSON...");
+      }
 
-      if (dadosGeoJson && dadosGeoJson.features) {
-        window._geojsonLayer = L.geoJSON(dadosGeoJson, {
-          style: function(feature) {
-            const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
-            const isNoEscopo = ESCOPO_SET.has(normalizarTexto(canonico));
-            const qtd = contagemMun[normalizarTexto(canonico)] || 0;
+      if (dadosGeoJson && dadosGeoJson.features && dadosGeoJson.features.length) {
+        function onEachFeature(feature, layer) {
+          const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
+          const isNoEscopo = ESCOPO_SET.has(normalizarTexto(canonico));
+          const redecNome = getRedecDoMunicipio(canonico);
 
-            if (isNoEscopo) {
-              return {
-                fillColor: obterCorPorQuantidade(qtd),
-                fillOpacity: qtd > 0 ? 0.85 : 0.45,
-                color: "#ffffff",
-                weight: qtd > 0 ? 1.5 : 1,
-                opacity: 1
-              };
+          layer.bindTooltip(`<b>${canonico}</b><br><span style="font-size:10px;opacity:.85;">${redecNome}</span>`, {
+            sticky: true,
+            direction: "top",
+            offset: [0, -10],
+            className: "mun-tooltip",
+            opacity: 1
+          });
+
+          layer.on({
+            mouseover(e) {
+              e.target.setStyle(isNoEscopo ? { fillOpacity: 1, weight: 2.5, color: "#16243F" } : { fillOpacity: 0.75, weight: 1.5, color: "#3A4D6B" });
+            },
+            mouseout(e) {
+              e.target.setStyle(obterEstiloFeature(e.target.feature, ESCOPO_SET));
+              e.target.closeTooltip();
+            },
+            click(e) {
+              e.target.closeTooltip();
+              const contagemMun = filtrados.filter(i => normalizarTexto(i.m) === normalizarTexto(canonico)).length;
+              const popupContent = `
+                <div class="popup-nome">${canonico}</div>
+                <div class="popup-redec">${redecNome}</div>
+                <div style="font-size:12px;color:#16243F;margin-top:4px;">
+                  <strong>${contagemMun}</strong> ocorrência(s) registrada(s).
+                </div>
+              `;
+              e.target.bindPopup(popupContent).openPopup();
+              mapInstance.fitBounds(e.target.getBounds(), { padding: [35, 35], animate: true, duration: 0.6 });
             }
-            return {
-              fillColor: "#E2E8F0",
-              fillOpacity: 0.25,
-              color: "#CBD5E1",
-              weight: 0.6,
-              opacity: 0.8
-            };
-          },
-          onEachFeature: function(feature, layer) {
-            const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
-            const isNoEscopo = ESCOPO_SET.has(normalizarTexto(canonico));
-            const redecNome = getRedecDoMunicipio(canonico);
-            const qtd = contagemMun[normalizarTexto(canonico)] || 0;
+          });
+        }
 
-            layer.bindTooltip(`<b>${canonico}</b><br><span style="font-size:10px;opacity:.85;">${redecNome}</span><br><b>${qtd}</b> ocorrência(s)`, {
-              sticky: true,
-              direction: "top",
-              offset: [0, -10],
-              className: "mun-tooltip",
-              opacity: 1
-            });
-
-            layer.on({
-              mouseover(e) {
-                e.target.setStyle({ fillOpacity: 0.95, weight: 2.5, color: "#16243F" });
-              },
-              mouseout(e) {
-                window._geojsonLayer.resetStyle(e.target);
-                e.target.closeTooltip();
-              },
-              click(e) {
-                e.target.closeTooltip();
-                const popupContent = `
-                  <div class="popup-nome">${canonico}</div>
-                  <div class="popup-redec">${redecNome}</div>
-                  <div style="font-size:12px;color:#16243F;margin-top:4px;">
-                    <strong>${qtd}</strong> ocorrência(s) registrada(s) no período.
-                  </div>
-                `;
-                e.target.bindPopup(popupContent).openPopup();
-                mapInstance.fitBounds(e.target.getBounds(), { padding: [35, 35], animate: true, duration: 0.6 });
-              }
-            });
-          }
+        window._geojsonLayer = L.geoJSON(dadosGeoJson, {
+          style: (feat) => obterEstiloFeature(feat, ESCOPO_SET),
+          onEachFeature
         }).addTo(mapInstance);
 
-        // Enquadramento inteligente da REDEC
-        const layersFiltradas = window._geojsonLayer.getLayers().filter(l => 
+        // Calcula os limites geográficos dos municípios no escopo
+        const camadasEscopo = window._geojsonLayer.getLayers().filter(l => 
           ESCOPO_SET.has(normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties.NM_MUN)))
         );
 
-        if (layersFiltradas.length > 0) {
-          const bounds = L.featureGroup(layersFiltradas).getBounds();
+        if (camadasEscopo.length > 0) {
+          const bounds = L.featureGroup(camadasEscopo).getBounds();
           if (bounds.isValid()) {
             currentScopeBounds = bounds;
-            mapInstance.fitBounds(bounds, { padding: [20, 20], animate: true });
+            mapInstance.fitBounds(bounds, { padding: [14, 14], animate: true });
           }
+        } else {
+          currentScopeBounds = window._geojsonLayer.getBounds();
+          mapInstance.fitBounds(currentScopeBounds, { padding: [10, 10], animate: true });
         }
       }
 
-      // Marcadores com coordenadas geográficas exatas
+      // Plota pontos com coordenadas exatas
       const pontosComCoords = filtrados.filter(i => i.tem_coords);
-      pontosComCoords.slice(0, 350).forEach(pt => {
+      pontosComCoords.slice(0, 300).forEach(pt => {
         const marker = L.circleMarker([pt.lat, pt.lon], {
           radius: 4.5,
-          fillColor: '#b91c1c',
+          fillColor: '#ea580c',
           color: '#ffffff',
           weight: 1.5,
           opacity: 1,
@@ -776,11 +831,16 @@
         markersLayerGroup.addLayer(marker);
       });
 
-      setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 60);
+      // Força o cálculo de dimensão do mapa imediatamente para não estreitar
+      setTimeout(() => {
+        if (mapInstance) {
+          mapInstance.invalidateSize({ animate: false });
+        }
+      }, 50);
     }
 
     /* =========================================================================
-       PADRONIZAÇÃO DAS LINHAS DA PLANILHA
+       3. PADRONIZAÇÃO DAS LINHAS DA PLANILHA
        ========================================================================= */
     function padronizarLinha(raw, tipo) {
       const keys = Object.keys(raw);
@@ -856,9 +916,10 @@
     }
 
     /* =========================================================================
-       MONTAGEM DE TELA E EVENTOS
+       4. MONTAGEM DE TELA E EVENTOS
        ========================================================================= */
     window.addEventListener("DOMContentLoaded", () => {
+      atualizarMunicipiosEscopo();
       initMap();
       renderizarBotoesNavegacao();
       configurarEventosGerais();
@@ -1107,7 +1168,7 @@
     }
 
     /* =========================================================================
-       FILTRAGEM E ATUALIZAÇÃO REATIVA
+       5. FILTRAGEM REATIVA E RENDERIZAÇÃO
        ========================================================================= */
     function filtrar() {
       const conf = CONFIG_MODULOS[abaAtiva] || { tipo: "generico", temPeriodo: false };
