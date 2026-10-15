@@ -248,7 +248,7 @@
     }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--orange); }
 
-    /* PAINEL DO MAPA */
+    /* PAINEL DO MAPA À DIREITA */
     .map-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -277,16 +277,14 @@
     }
     .btn-reset-map:hover { background: #334155; }
 
-    /* MAP CONTAINER */
     #map {
-      height: 540px;
+      height: 520px;
       width: 100%;
       min-width: 100%;
       border-radius: 6px;
       background: #EEF1F4;
     }
 
-    /* TOOLTIP E POPUP */
     .mun-tooltip {
       background: rgba(22, 36, 63, 0.92);
       color: #fff;
@@ -516,7 +514,8 @@
 
   </div>
 
-  <!-- Scripts colocados no final do body conforme o seu projeto funcional -->
+  <!-- SCRIPT ÚNICO DO LEAFLET E MAPA.JS NO FINAL DO BODY -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="mapa.js"></script>
 
   <script>
@@ -644,7 +643,7 @@
     }
 
     /* =========================================================================
-       2. LÓGICA DE MAPA (EXATA DO SEU OUTRO PROJETO FUNCIONAL)
+       2. LÓGICA DO MAPA (IDÊNTICA AO SEU OUTRO PROJETO FUNCIONAL)
        ========================================================================= */
     function obterEstiloFeature(feature, escopoSet) {
       const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
@@ -670,10 +669,8 @@
 
     function initMap() {
       if (!mapInstance) {
-        // Inicializa com centro e zoom no RJ garantidos
         mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false }).setView([-22.35, -42.7], 7.5);
         
-        // Camada base Esri Light Gray Canvas
         L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
           attribution: "Tiles &copy; Esri &mdash; SEDEC RJ",
           maxZoom: 14
@@ -713,14 +710,14 @@
       }
       markersLayerGroup.clearLayers();
 
-      // Identifica o objeto GEOJSON do arquivo mapa.js
+      // Recupera com segurança o objeto GEOJSON do mapa.js
       let dadosGeoJson = null;
       try {
         if (typeof GEOJSON !== "undefined") dadosGeoJson = GEOJSON;
         else if (window.GEOJSON) dadosGeoJson = window.GEOJSON;
         else if (window.geojsonRio) dadosGeoJson = window.geojsonRio;
       } catch (e) {
-        console.warn("Aguardando GEOJSON...");
+        console.warn("Aguardando carregamento de GEOJSON...");
       }
 
       if (dadosGeoJson && dadosGeoJson.features && dadosGeoJson.features.length) {
@@ -782,7 +779,7 @@
         }
       }
 
-      // Plota pontos com coordenadas exatas
+      // Marcadores de ocorrências
       const pontosComCoords = filtrados.filter(i => i.tem_coords);
       pontosComCoords.slice(0, 300).forEach(pt => {
         const marker = L.circleMarker([pt.lat, pt.lon], {
@@ -891,9 +888,9 @@
        ========================================================================= */
     window.addEventListener("DOMContentLoaded", () => {
       atualizarMunicipiosEscopo();
-      initMap();
       renderizarBotoesNavegacao();
       configurarEventosGerais();
+      initMap();
       carregarModulo(abaAtiva);
 
       document.getElementById("btnResetMap").addEventListener("click", () => {
@@ -1135,7 +1132,8 @@
       const dFim = document.getElementById("dataFim");
       dIni.min = datas[0]; dIni.max = datas[datas.length - 1];
       dFim.min = datas[0]; dFim.max = datas[datas.length - 1];
-      dIni.value = datas[0]; dFim.value = datas[datas.length - 1];
+      dIni.value = datas[0];
+      dFim.value = datas[datas.length - 1];
     }
 
     /* =========================================================================
