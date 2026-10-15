@@ -2,15 +2,11 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Painel Executivo de Defesa Civil — SEDEC-RJ</title>
 
-  <!-- Dependências Oficiais do Leaflet (idênticas ao seu projeto funcional) -->
+  <!-- CSS do Leaflet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-
-  <!-- Seu GeoJSON do Rio de Janeiro -->
-  <script src="mapa.js"></script>
 
   <style>
     :root {
@@ -25,7 +21,7 @@
       --blue: #38bdf8;
       --green: #10b981;
       --amber: #f59e0b;
-      --purple: #a855f7;
+      --accent: #2454A6;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -252,7 +248,7 @@
     }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--orange); }
 
-    /* PAINEL DO MAPA À DIREITA */
+    /* PAINEL DO MAPA */
     .map-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -281,16 +277,16 @@
     }
     .btn-reset-map:hover { background: #334155; }
 
-    /* MAP CONTAINER (REGRAS EXATAS DO SEU PROJETO FUNCIONAL) */
+    /* MAP CONTAINER */
     #map {
-      height: 520px;
+      height: 540px;
       width: 100%;
       min-width: 100%;
       border-radius: 6px;
       background: #EEF1F4;
     }
 
-    /* TOOLTIP E POPUP DO SEU PROJETO FUNCIONAL */
+    /* TOOLTIP E POPUP */
     .mun-tooltip {
       background: rgba(22, 36, 63, 0.92);
       color: #fff;
@@ -520,9 +516,12 @@
 
   </div>
 
+  <!-- Scripts colocados no final do body conforme o seu projeto funcional -->
+  <script src="mapa.js"></script>
+
   <script>
     /* =========================================================================
-       1. DICIONÁRIO OFICIAL DOS 92 MUNICÍPIOS DO RJ (DO SEU OUTRO PROJETO)
+       1. DICIONÁRIO OFICIAL DOS 92 MUNICÍPIOS DO RJ -> REDECs
        ========================================================================= */
     const MAPA_REDECS_RJ = {
       "Angra dos Reis": "REDEC 4 - Costa Verde", "Aperibé": "REDEC 11 - Noroeste", "Araruama": "REDEC 9 - Baixada Litorânea",
@@ -575,7 +574,7 @@
     let pagina = 1;
     const porPagina = 8;
 
-    /* Variáveis do Mapa Leaflet */
+    /* Variáveis do Mapa */
     let mapInstance = null;
     let markersLayerGroup = null;
     let currentScopeBounds = null;
@@ -645,7 +644,7 @@
     }
 
     /* =========================================================================
-       2. LÓGICA DO MAPA (COPIADA EXATAMENTE DO SEU OUTRO PROJETO)
+       2. LÓGICA DE MAPA (EXATA DO SEU OUTRO PROJETO FUNCIONAL)
        ========================================================================= */
     function obterEstiloFeature(feature, escopoSet) {
       const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
@@ -671,8 +670,10 @@
 
     function initMap() {
       if (!mapInstance) {
-        mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false });
+        // Inicializa com centro e zoom no RJ garantidos
+        mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false }).setView([-22.35, -42.7], 7.5);
         
+        // Camada base Esri Light Gray Canvas
         L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
           attribution: "Tiles &copy; Esri &mdash; SEDEC RJ",
           maxZoom: 14
@@ -712,7 +713,7 @@
       }
       markersLayerGroup.clearLayers();
 
-      // Busca do GEOJSON
+      // Identifica o objeto GEOJSON do arquivo mapa.js
       let dadosGeoJson = null;
       try {
         if (typeof GEOJSON !== "undefined") dadosGeoJson = GEOJSON;
@@ -751,7 +752,7 @@
                 <div class="popup-nome">${canonico}</div>
                 <div class="popup-redec">${redecNome}</div>
                 <div style="font-size:12px;color:#16243F;margin-top:4px;">
-                  <strong>${contagemMun}</strong> ocorrência(s) registrada(s) no filtro atual.
+                  <strong>${contagemMun}</strong> ocorrência(s) registrada(s).
                 </div>
               `;
               e.target.bindPopup(popupContent).openPopup();
@@ -781,7 +782,7 @@
         }
       }
 
-      // Pontos com coordenadas
+      // Plota pontos com coordenadas exatas
       const pontosComCoords = filtrados.filter(i => i.tem_coords);
       pontosComCoords.slice(0, 300).forEach(pt => {
         const marker = L.circleMarker([pt.lat, pt.lon], {
@@ -804,11 +805,8 @@
         markersLayerGroup.addLayer(marker);
       });
 
-      // Recalcula o tamanho exato da div para não estreitar
       setTimeout(() => {
-        if (mapInstance) {
-          mapInstance.invalidateSize({ animate: false });
-        }
+        if (mapInstance) mapInstance.invalidateSize({ animate: false });
       }, 80);
     }
 
@@ -1137,8 +1135,7 @@
       const dFim = document.getElementById("dataFim");
       dIni.min = datas[0]; dIni.max = datas[datas.length - 1];
       dFim.min = datas[0]; dFim.max = datas[datas.length - 1];
-      dIni.value = datas[0];
-      dFim.value = datas[datas.length - 1];
+      dIni.value = datas[0]; dFim.value = datas[datas.length - 1];
     }
 
     /* =========================================================================
