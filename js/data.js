@@ -1,7 +1,7 @@
 /**
  * js/data.js
- * Funções de normalização de texto, datas, coordenadas e extração rigorosa
- * da Coluna F (Tipo de Evento) e Coluna G (Subtipo) para o módulo SISGEO.
+ * Funções de normalização de texto, datas, coordenadas e leitura rigorosa
+ * da Coluna F (Tipo) e Coluna G (Subtipo) da planilha.
  */
 
 const DataProcessor = (() => {
@@ -106,42 +106,40 @@ const DataProcessor = (() => {
     }
 
     /**
-     * Padroniza uma linha mapeando explicitamente a Coluna F (tipo) e Coluna G (subtipo)
-     * Ignora textos longos na coluna de tipo para evitar poluição no filtro.
+     * Padroniza a linha tratando tanto formato de array (índice 5 = F, índice 6 = G)
+     * quanto formato de objeto com chaves nomeadas.
      */
     function padronizarRegistro(linhaBruta, idx) {
-        // Se a linha for um array puro (ex: [valA, valB, valC, valD, valE, valF, valG])
-        let objTrabalho = linhaBruta;
+        let tipoF = '';
+        let subtipoG = '';
+        let munBruto = '';
+        let redecBruta = '';
+        let dataBruta = '';
+        let latBruta = '';
+        let lngBruta = '';
+
         if (Array.isArray(linhaBruta)) {
-            objTrabalho = {
-                colA: linhaBruta[0],
-                colB: linhaBruta[1],
-                colC: linhaBruta[2],
-                colD: linhaBruta[3],
-                colE: linhaBruta[4],
-                colF: linhaBruta[5], // Coluna F: Tipo de Evento
-                colG: linhaBruta[6], // Coluna G: Subtipo
-                colH: linhaBruta[7]
-            };
+            // Mapeamento direto por índice de coluna da planilha (A=0, B=1, C=2, D=3, E=4, F=5, G=6)
+            dataBruta = linhaBruta[0];
+            redecBruta = linhaBruta[1];
+            munBruto = linhaBruta[2];
+            tipoF = linhaBruta[5] || ''; // Coluna F
+            subtipoG = linhaBruta[6] || ''; // Coluna G
+            latBruta = linhaBruta[10];
+            lngBruta = linhaBruta[11];
+        } else if (linhaBruta && typeof linhaBruta === 'object') {
+            // Mapeamento por nomes comuns de colunas ou chaves genéricas
+            munBruto = extrairCampo(linhaBruta, ['MUNICIPIO', 'MUNICÍPIO', 'CIDADE', 'LOCALIDADE', 'NM_MUN', 'NOME DO MUNICIPIO']);
+            redecBruta = extrairCampo(linhaBruta, ['REDEC', 'REGIONAL', 'REGIAO', 'REGIÃO', 'COORDENADORIA']);
+            dataBruta = extrairCampo(linhaBruta, ['DATA', 'DATA DO EVENTO', 'DATA DA OCORRENCIA', 'DATA_OCORRENCIA', 'CARIMBO DE DATA/HORA', 'TIMESTAMP', 'DT_EVENTO']);
+            
+            // Coluna F e G por nome explícito ou por propriedades indexadas colF/colG
+            tipoF = extrairCampo(linhaBruta, ['TIPO', 'TIPO DE EVENTO', 'EVENTO', 'COL_F', 'F']);
+            subtipoG = extrairCampo(linhaBruta, ['SUBTIPO', 'SUB TIPO', 'SUB_TIPO', 'DETALHE', 'COL_G', 'G']);
+
+            latBruta = extrairCampo(linhaBruta, ['LATITUDE', 'LAT', 'Y']);
+            lngBruta = extrairCampo(linhaBruta, ['LONGITUDE', 'LONG', 'LNG', 'LON', 'X']);
         }
-
-        const munBruto = extrairCampo(objTrabalho, [
-            'MUNICIPIO', 'MUNICÍPIO', 'CIDADE', 'LOCALIDADE', 'NM_MUN', 'NOME DO MUNICIPIO', 'COL_C', 'COL_D'
-        ]);
-        const redecBruta = extrairCampo(objTrabalho, [
-            'REDEC', 'REGIONAL', 'REGIAO', 'REGIÃO', 'COORDENADORIA'
-        ]);
-        const dataBruta = extrairCampo(objTrabalho, [
-            'DATA', 'DATA DO EVENTO', 'DATA DA OCORRENCIA', 'DATA_OCORRENCIA', 'CARIMBO DE DATA/HORA', 'TIMESTAMP', 'CRIADO EM', 'DT_EVENTO'
-        ]);
-
-        // Captura rigorosa da Coluna F (Tipo) e Coluna G (Subtipo)
-        let tipoF = extrairCampo(objTrabalho, ['TIPO', 'EVENTO', 'NATUREZA', 'OCORRENCIA', 'OCORRÊNCIA', 'COBRADE', 'COL_F']);
-        let subtipoG = extrairCampo(objTrabalho, ['SUBTIPO', 'SUB_TIPO', 'DETALHE', 'CLASSIFICACAO', 'COL_G']);
-        let descricaoLivre = extrairCampo(objTrabalho, ['DESCRICAO', 'DESCRIÇÃO', 'HISTORICO', 'OBS', 'OBSERVACAO']);
-
-        const latBruta = extrairCampo(objTrabalho, ['LATITUDE', 'LAT', 'Y', 'COORD_LAT']);
-        const lngBruta = extrairCampo(objTrabalho, ['LONGITUDE', 'LONG', 'LNG', 'LON', 'X', 'COORD_LNG']);
 
         const geo = resolverMunicipioERedec(munBruto, redecBruta);
         const infoData = normalizarData(dataBruta);
@@ -149,19 +147,8 @@ const DataProcessor = (() => {
         const lat = parseFloat(String(latBruta).replace(',', '.'));
         const lng = parseFloat(String(lngBruta).replace(',', '.'));
 
-        // Validação de segurança: Se o tipo F vier vazio ou for uma frase muito longa (descrição disfarçada),
-        // busca nas outras colunas ou define como "Ocorrência".
-        let tipoLimpo = 'Ocorrência';
-        if (tipoF && String(tipoF).trim().length > 0 && String(tipoF).length < 50 && !String(tipoF).includes('http')) {
-            tipoLimpo = String(tipoF).trim();
-        } else if (descricaoLivre && String(descricaoLivre).length < 50) {
-            tipoLimpo = String(descricaoLivre).trim();
-        }
-
-        let subtipoLimpo = '';
-        if (subtipoG && String(subtipoG).trim().length > 0 && String(subtipoG).length < 50) {
-            subtipoLimpo = String(subtipoG).trim();
-        }
+        const tipoLimpo = tipoF ? String(tipoF).trim() : 'Geral';
+        const subtipoLimpo = subtipoG ? String(subtipoG).trim() : '';
 
         let eventoFormatado = tipoLimpo;
         if (subtipoLimpo) {
@@ -170,7 +157,7 @@ const DataProcessor = (() => {
 
         return {
             _id: idx + 1,
-            _raw: objTrabalho,
+            _raw: linhaBruta,
             municipio: geo.municipio,
             redec: geo.redec,
             data: infoData.dataBR,
