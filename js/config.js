@@ -1,13 +1,13 @@
 /**
  * js/config.js
  * Configurações globais, URL da API (Google Apps Script), módulos de abas
- * e Dicionário Canônico atualizado conforme documento oficial das REDECs.
+ * e Dicionário Canônico atualizado das REDECs.
  */
 
 const CONFIG = {
     API_URL: 'https://script.google.com/macros/s/AKfycbwC7sf80Z2HSS2PewAnM8T_AAOA9rn8KNGEA_pVoA0xcevecSisJrBPQi472V65Qo0l/exec',
     CACHE_KEY: 'SEDEC_RJ_PAINEL_CACHE_V2',
-    CACHE_TTL_MS: 5 * 60 * 1000, // 5 minutos
+    CACHE_TTL_MS: 5 * 60 * 1000,
     ITENS_POR_PAGINA: 25,
 
     MODULOS_VISIVEIS: [
@@ -19,14 +19,8 @@ const CONFIG = {
     ]
 };
 
-/**
- * Dicionário Canônico Oficial dos 92 Municípios mapeados para as REDECs corretas (Documento SEDEC)
- */
 const MAPA_REDECS_RJ = {
-    // REDEC 1 - CAPITAL[cite: 3]
     "Rio de Janeiro": "REDEC 1 - CAPITAL",
-
-    // REDEC 2 - BAIXADA FLUMINENSE
     "Belford Roxo": "REDEC 2 - BAIXADA FLUMINENSE",
     "Duque de Caxias": "REDEC 2 - BAIXADA FLUMINENSE",
     "Guapimirim": "REDEC 2 - BAIXADA FLUMINENSE",
@@ -35,21 +29,15 @@ const MAPA_REDECS_RJ = {
     "Nilópolis": "REDEC 2 - BAIXADA FLUMINENSE",
     "Nova Iguaçu": "REDEC 2 - BAIXADA FLUMINENSE",
     "São João de Meriti": "REDEC 2 - BAIXADA FLUMINENSE",
-
-    // REDEC 3 - METROPOLITANA[cite: 2, 3, 4]
     "Cachoeiras de Macacu": "REDEC 3 - METROPOLITANA",
     "Itaboraí": "REDEC 3 - METROPOLITANA",
     "Maricá": "REDEC 3 - METROPOLITANA",
     "Niterói": "REDEC 3 - METROPOLITANA",
     "São Gonçalo": "REDEC 3 - METROPOLITANA",
     "Tanguá": "REDEC 3 - METROPOLITANA",
-
-    // REDEC 4 - COSTA VERDE[cite: 2, 3]
     "Angra dos Reis": "REDEC 4 - COSTA VERDE",
     "Mangaratiba": "REDEC 4 - COSTA VERDE",
     "Paraty": "REDEC 4 - COSTA VERDE",
-
-    // REDEC 5 - SUL I[cite: 2, 3, 4]
     "Barra do Piraí": "REDEC 5 - SUL I",
     "Barra Mansa": "REDEC 5 - SUL I",
     "Comendador Levy Gasparian": "REDEC 5 - SUL I",
@@ -65,8 +53,6 @@ const MAPA_REDECS_RJ = {
     "Valença": "REDEC 5 - SUL I",
     "Vassouras": "REDEC 5 - SUL I",
     "Volta Redonda": "REDEC 5 - SUL I",
-
-    // REDEC 6 - SUL II[cite: 2, 3, 4]
     "Engenheiro Paulo de Frontin": "REDEC 6 - SUL II",
     "Itaguaí": "REDEC 6 - SUL II",
     "Japeri": "REDEC 6 - SUL II",
@@ -77,8 +63,6 @@ const MAPA_REDECS_RJ = {
     "Queimados": "REDEC 6 - SUL II",
     "Rio Claro": "REDEC 6 - SUL II",
     "Seropédica": "REDEC 6 - SUL II",
-
-    // REDEC 7 - SERRANA I[cite: 2, 3, 4]
     "Areal": "REDEC 7 - SERRANA I",
     "Carmo": "REDEC 7 - SERRANA I",
     "Petrópolis": "REDEC 7 - SERRANA I",
@@ -86,8 +70,6 @@ const MAPA_REDECS_RJ = {
     "São José do Vale do Rio Preto": "REDEC 7 - SERRANA I",
     "Sumidouro": "REDEC 7 - SERRANA I",
     "Teresópolis": "REDEC 7 - SERRANA I",
-
-    // REDEC 8 - SERRANA II[cite: 2, 3, 4]
     "Bom Jardim": "REDEC 8 - SERRANA II",
     "Cantagalo": "REDEC 8 - SERRANA II",
     "Cordeiro": "REDEC 8 - SERRANA II",
@@ -97,8 +79,6 @@ const MAPA_REDECS_RJ = {
     "Santa Maria Madalena": "REDEC 8 - SERRANA II",
     "São Sebastião do Alto": "REDEC 8 - SERRANA II",
     "Trajano de Moraes": "REDEC 8 - SERRANA II",
-
-    // REDEC 9 - BAIXADA LITORÂNEA[cite: 2, 3, 4]
     "Araruama": "REDEC 9 - BAIXADA LITORÂNEA",
     "Armação dos Búzios": "REDEC 9 - BAIXADA LITORÂNEA",
     "Arraial do Cabo": "REDEC 9 - BAIXADA LITORÂNEA",
@@ -111,16 +91,12 @@ const MAPA_REDECS_RJ = {
     "São Pedro da Aldeia": "REDEC 9 - BAIXADA LITORÂNEA",
     "Saquarema": "REDEC 9 - BAIXADA LITORÂNEA",
     "Silva Jardim": "REDEC 9 - BAIXADA LITORÂNEA",
-
-    // REDEC 10 - NORTE[cite: 2, 3, 4]
     "Campos dos Goytacazes": "REDEC 10 - NORTE",
     "Carapebus": "REDEC 10 - NORTE",
     "Conceição de Macabu": "REDEC 10 - NORTE",
     "Quissamã": "REDEC 10 - NORTE",
     "São Francisco de Itabapoana": "REDEC 10 - NORTE",
     "São João da Barra": "REDEC 10 - NORTE",
-
-    // REDEC 11 - NOROESTE[cite: 2, 3, 4]
     "Aperibé": "REDEC 11 - NOROESTE",
     "Bom Jesus do Itabapoana": "REDEC 11 - NOROESTE",
     "Cambuci": "REDEC 11 - NOROESTE",
@@ -138,7 +114,12 @@ const MAPA_REDECS_RJ = {
     "Varre-Sai": "REDEC 11 - NOROESTE"
 };
 
-const LISTA_REDECS_RJ = Array.from(new Set(Object.values(MAPA_REDECS_RJ))).sort();
+// Ordenação numérica rigorosa de 1 a 11 com base no número extraído do texto da REDEC
+const LISTA_REDECS_RJ = Array.from(new Set(Object.values(MAPA_REDECS_RJ))).sort((a, b) => {
+    const numA = parseInt(a.replace(/\D/g, '')) || 0;
+    const numB = parseInt(b.replace(/\D/g, '')) || 0;
+    return numA - numB;
+});
 
 window.CONFIG = CONFIG;
 window.MAPA_REDECS_RJ = MAPA_REDECS_RJ;
