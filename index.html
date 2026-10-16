@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Painel Executivo de Defesa Civil — SEDEC-RJ</title>
 
-  <!-- Dependências do Leaflet -->
+  <!-- CSS do Leaflet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 
   <style>
@@ -124,7 +124,7 @@
     .dot.syncing { background: #f59e0b; }
     .dot.offline { background: #ef4444; }
 
-    /* CONTROLO DE PERÍODO */
+    /* CONTROLE DE PERÍODO */
     .period-highlight-bar {
       background: linear-gradient(180deg, #1e293b 0%, #151f30 100%);
       border: 1px solid var(--orange);
@@ -176,30 +176,31 @@
     }
     .btn-preset:hover, .btn-preset.active { background: var(--orange); color: #fff; border-color: var(--orange); }
 
-    /* LAYOUT EM 2 COLUNAS */
+    /* LAYOUT DE 2 COLUNAS (FIXO, SEM ENCOLHER O MAPA) */
     .main-workspace {
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(460px, 0.85fr);
       gap: 16px;
+      align-items: start;
       width: 100%;
-      align-items: flex-start;
     }
+
+    @media (max-width: 1080px) {
+      .main-workspace { grid-template-columns: 1fr; }
+      .col-right { position: static !important; width: 100%; min-width: 100%; }
+    }
+
     .col-left {
-      flex: 1 1 54%;
       min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
+
     .col-right {
-      flex: 1 1 46%;
-      min-width: 440px;
+      min-width: 460px;
       position: sticky;
       top: 12px;
-    }
-
-    @media (max-width: 1080px) {
-      .main-workspace { flex-direction: column; }
-      .col-right { width: 100%; min-width: 100%; position: static; }
     }
 
     /* CARDS DE KPIS */
@@ -248,7 +249,7 @@
     }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--orange); }
 
-    /* PAINEL DO MAPA */
+    /* PAINEL DO MAPA À DIREITA */
     .map-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -438,7 +439,7 @@
     </div>
   </div>
 
-  <!-- BARRA DE CONTROLO DE PERÍODO -->
+  <!-- BARRA DE CONTROLE DE PERÍODO -->
   <div class="period-highlight-bar" id="barraPeriodo">
     <div class="period-title-group">
       <h2>Filtro de Período</h2>
@@ -518,13 +519,13 @@
 
   </div>
 
-  <!-- BIBLIOTECAS E MAPA CARREGADOS APENAS AQUI NO FIM DO BODY -->
+  <!-- SCRIPT DO LEAFLET E MAPA.JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="mapa.js"></script>
 
   <script>
     /* =========================================================================
-       1. MAPEAMENTO OFICIAL DOS 92 MUNICÍPIOS DO RJ -> REDECs
+       1. DICIONÁRIO OFICIAL DOS 92 MUNICÍPIOS DO RJ -> REDECs
        ========================================================================= */
     const MAPA_REDECS_RJ = {
       "Angra dos Reis": "REDEC 4 - Costa Verde", "Aperibé": "REDEC 11 - Noroeste", "Araruama": "REDEC 9 - Baixada Litorânea",
@@ -584,6 +585,7 @@
     let popupCloseTimer = null;
     let redecAtiva = "ALL";
     let MUNICIPIOS_ESCOPO = [];
+    let geojsonDataGlobal = null;
 
     function tratarErroLogo(img) {
       img.parentElement.innerHTML = '<span style="font-size:24px;">🛡️</span>';
@@ -647,11 +649,11 @@
     }
 
     /* =========================================================================
-       2. LÓGICA DO MAPA COROPLÉTICO COM FOCO EM REDEC
+       2. REGRAS VISUAIS DE COROPLÉTICO E PREENCHIMENTO POR REDEC
        ========================================================================= */
     function obterCorPorQuantidade(qtd) {
-      if (qtd > 50) return '#b91c1c'; // Vermelho intenso
-      if (qtd > 20) return '#ea580c'; // Laranja forte
+      if (qtd > 50) return '#b91c1c'; // Vermelho vivo
+      if (qtd > 20) return '#ea580c'; // Laranja intenso
       if (qtd > 5)  return '#fb923c'; // Laranja médio
       if (qtd > 0)  return '#fed7aa'; // Pêssego suave
       return '#D4DAE3';               // Cinzento claro (sem ocorrências)
@@ -664,9 +666,8 @@
       const isRedecEspecifica = (redecAtiva !== "ALL" && redecAtiva !== "TODAS");
 
       if (isRedecEspecifica) {
-        // Se uma REDEC está selecionada:
         if (isNoEscopo) {
-          // Municípios da REDEC: TOTALMENTE PREENCHIDOS E DESTACADOS
+          // DENTRO DA REDEC SELECIONADA: TOTALMENTE PREENCHIDO
           return {
             fillColor: qtd > 0 ? obterCorPorQuantidade(qtd) : "#2454A6",
             fillOpacity: 0.85,
@@ -675,18 +676,18 @@
             opacity: 1
           };
         } else {
-          // Restante do Estado: APENAS CONTORNO (sem preenchimento)
+          // FORA DA REDEC SELECIONADA: APENAS O CONTORNO (TRANSPARENTE)
           return {
             fillColor: "transparent",
             fillOpacity: 0,
             color: "#64748B",
             weight: 0.8,
             dashArray: "2, 2",
-            opacity: 0.6
+            opacity: 0.5
           };
         }
       } else {
-        // Visão Geral (Todas as REDECs): MAPA COROPLÉTICO PREENCHIDO
+        // VISÃO GERAL (TODAS AS REDECS): COROPLÉTICO PREENCHIDO
         return {
           fillColor: obterCorPorQuantidade(qtd),
           fillOpacity: qtd > 0 ? 0.85 : 0.5,
@@ -695,6 +696,40 @@
           opacity: 1
         };
       }
+    }
+
+    // CARREGADOR SEGURO DO GEOJSON COM RETENTATIVAS E FETCH
+    async function obterGeoJsonSeguro() {
+      if (geojsonDataGlobal && geojsonDataGlobal.features) return geojsonDataGlobal;
+      try {
+        if (typeof GEOJSON !== "undefined" && GEOJSON.features) {
+          geojsonDataGlobal = GEOJSON;
+          return geojsonDataGlobal;
+        }
+        if (window.GEOJSON && window.GEOJSON.features) {
+          geojsonDataGlobal = window.GEOJSON;
+          return geojsonDataGlobal;
+        }
+      } catch (e) {}
+
+      // Se a variável ainda não estava no escopo, busca via fetch relativo
+      try {
+        const resp = await fetch("./mapa.js");
+        if (resp.ok) {
+          const jsText = await resp.text();
+          // Extrai o conteúdo JSON após a declaração da constante
+          const jsonStart = jsText.indexOf("{");
+          const jsonEnd = jsText.lastIndexOf("}");
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            const rawJson = jsText.substring(jsonStart, jsonEnd + 1);
+            geojsonDataGlobal = JSON.parse(rawJson);
+            return geojsonDataGlobal;
+          }
+        }
+      } catch (err) {
+        console.warn("Aguardando script mapa.js carregar...");
+      }
+      return null;
     }
 
     function initMap() {
@@ -729,13 +764,13 @@
       atualizarCamadasMapa();
     }
 
-    function atualizarCamadasMapa() {
+    async function atualizarCamadasMapa() {
       if (!mapInstance) return;
 
       atualizarMunicipiosEscopo();
       const ESCOPO_SET = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
 
-      // Contagem de ocorrências por município nos dados filtrados
+      // Contagem de ocorrências por município
       const contagemMun = {};
       filtrados.forEach(item => {
         const cNome = getNomeCanonicoMunicipio(item.m);
@@ -748,14 +783,7 @@
       }
       markersLayerGroup.clearLayers();
 
-      let dadosGeoJson = null;
-      try {
-        if (typeof GEOJSON !== "undefined") dadosGeoJson = GEOJSON;
-        else if (window.GEOJSON) dadosGeoJson = window.GEOJSON;
-        else if (window.geojsonRio) dadosGeoJson = window.geojsonRio;
-      } catch (e) {
-        console.warn("Aguardando carregamento de GEOJSON...");
-      }
+      const dadosGeoJson = await obterGeoJsonSeguro();
 
       if (dadosGeoJson && dadosGeoJson.features && dadosGeoJson.features.length) {
         function onEachFeature(feature, layer) {
@@ -800,6 +828,7 @@
           onEachFeature
         }).addTo(mapInstance);
 
+        // Enquadramento de bounds suave
         const camadasEscopo = window._geojsonLayer.getLayers().filter(l => 
           ESCOPO_SET.has(normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties.NM_MUN)))
         );
@@ -814,9 +843,12 @@
           currentScopeBounds = window._geojsonLayer.getBounds();
           mapInstance.fitBounds(currentScopeBounds, { padding: [10, 10], animate: true });
         }
+      } else {
+        // Se ainda não carregou, tenta de novo em 300ms
+        setTimeout(atualizarCamadasMapa, 300);
       }
 
-      // Marcadores pontuais com coordenadas (se estiverem dentro do escopo)
+      // Plota os marcadores de ocorrências
       const pontosComCoords = filtrados.filter(i => i.tem_coords);
       pontosComCoords.slice(0, 300).forEach(pt => {
         const marker = L.circleMarker([pt.lat, pt.lon], {
@@ -1169,8 +1201,7 @@
       const dFim = document.getElementById("dataFim");
       dIni.min = datas[0]; dIni.max = datas[datas.length - 1];
       dFim.min = datas[0]; dFim.max = datas[datas.length - 1];
-      dIni.value = datas[0];
-      dFim.value = datas[datas.length - 1];
+      dIni.value = datas[0]; dFim.value = datas[datas.length - 1];
     }
 
     /* =========================================================================
@@ -1193,14 +1224,18 @@
           if (dtFim && item.d_iso > dtFim) return false;
         }
 
+        // Comparação com normalização de texto (ignora maiúsculas/minúsculas)
+        if (fRedec && fRedec !== "TODAS") {
+          if (normalizarTexto(item.r) !== normalizarTexto(fRedec)) return false;
+        }
+        if (fMun && fMun !== "TODOS") {
+          if (normalizarTexto(item.m) !== normalizarTexto(fMun)) return false;
+        }
+
         if (tipo === "sisgeo") {
-          if (fRedec && fRedec !== "TODAS" && item.r !== fRedec) return false;
-          if (fMun && fMun !== "TODOS" && item.m !== fMun) return false;
           if (fTipo && fTipo !== "TODAS" && item.tipo !== fTipo) return false;
           if (fTexto && !normalizarTexto(`${item.m} ${item.bairro} ${item.endereco} ${item.tipo} ${item.subtipo}`).includes(fTexto)) return false;
         } else if (tipo === "eventos") {
-          if (fRedec && fRedec !== "TODAS" && item.r !== fRedec) return false;
-          if (fMun && fMun !== "TODOS" && item.m !== fMun) return false;
           if (fTipo === "desliz" && !(item.dz > 0)) return false;
           if (fTipo === "inund" && !(item.in > 0)) return false;
           if (fTipo === "arvore" && !(item.ar > 0)) return false;
