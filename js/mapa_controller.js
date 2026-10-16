@@ -1,308 +1,399 @@
-/* =========================================================================
-   CONTROLE DO MAPA LEAFLET, ESRI CANVAS, COROPLÉTICO E FOCO EM REDEC
-   ========================================================================= */
+/**
+ * js/mapa_controller.js
+ * Controlador do Mapa Interativo (Leaflet.js) - Painel SEDEC-RJ / REDECs
+ * Responsável pela malha coroplética dos 92 municípios, alternância de preenchimento
+ * vs. contorno transparente ao filtrar REDEC, ajuste de câmera e plotagem de pontos.
+ */
 
-// Limites reais do Estado do Rio de Janeiro (enquadra 100% do estado sem cortes)
-const RJ_BOUNDS = [
-  [-23.38, -44.90], // Sudoeste (Paraty)
-  [-20.76, -40.95]  // Nordeste (São Francisco de Itabapoana / Porciúncula)
-];
+const MapaController = (() => {
+    let map = null;
+    let geojsonLayer = null;
+    let markersLayer = null;
+    let infoControl = null;
+    let legendControl = null;
 
-let mapInstance = null;
-let markersLayerGroup = null;
-let currentScopeBounds = null;
-let popupCloseTimer = null;
-let redecAtiva = "ALL";
-let municipioAtivo = "TODOS";
-let MUNICIPIOS_ESCOPO = [];
+    // Enquadramento oficial cobrindo 100% do Estado do Rio de Janeiro (sem cortar Norte/Noroeste)
+    const RJ_BOUNDS = [
+        [-23.38, -44.90], // Sudoeste (Paraty)
+        [-20.76, -40.95]  // Nordeste (Porciúncula / São Francisco de Itabapoana)
+    ];
 
-function atualizarMunicipiosEscopo() {
-  if (redecAtiva === "ALL" || redecAtiva === "TODAS") {
-    MUNICIPIOS_ESCOPO = Object.keys(MAPA_REDECS_RJ).sort((a, b) => a.localeCompare(b, "pt-BR"));
-    const el = document.getElementById("mapTitle");
-    if (el) el.textContent = "Estado do Rio de Janeiro (92 municípios)";
-  } else {
-    MUNICIPIOS_ESCOPO = Object.keys(MAPA_REDECS_RJ)
-      .filter(m => normalizarTexto(MAPA_REDECS_RJ[m]) === normalizarTexto(redecAtiva))
-      .sort((a, b) => a.localeCompare(b, "pt-BR"));
-    const el = document.getElementById("mapTitle");
-    if (el) el.textContent = `Estado do Rio de Janeiro — ${redecAtiva}`;
-  }
-}
-
-function obterCorPorQuantidade(qtd) {
-  if (qtd > 50) return '#b91c1c'; // Vermelho intenso
-  if (qtd > 20) return '#ea580c'; // Laranja forte
-  if (qtd > 5)  return '#fb923c'; // Laranja médio
-  if (qtd > 0)  return '#fed7aa'; // Pêssego suave
-  return '#D4DAE3';               // Cinza suave (sem ocorrências)
-}
-
-/* =========================================================================
-   REGRAS VISUAIS: COROPLÉTICO PREENCHIDO vs APENAS CONTORNO
-   ========================================================================= */
-function obterEstiloFeature(feature, escopoSet, contagemMun) {
-  const canonico = getNomeCanonicoMunicipio(feature.properties?.NM_MUN || feature.properties?.name);
-  const isNoEscopo = escopoSet.has(normalizarTexto(canonico));
-  const isMunSelecionado = (municipioAtivo !== "TODOS" && normalizarTexto(canonico) === normalizarTexto(municipioAtivo));
-  const qtd = contagemMun[normalizarTexto(canonico)] || 0;
-  const isRedecEspecifica = (redecAtiva !== "ALL" && redecAtiva !== "TODAS");
-
-  // 1. Caso haja um município específico filtrado no dropdown
-  if (municipioAtivo !== "TODOS") {
-    if (isMunSelecionado) {
-      return {
-        fillColor: qtd > 0 ? obterCorPorQuantidade(qtd) : "#2454A6",
-        fillOpacity: 0.90,
-        color: "#ffffff",
-        weight: 2.5,
-        opacity: 1
-      };
-    }
-    // Restante do estado: transparente apenas com contorno
-    return {
-      fillColor: "transparent",
-      fillOpacity: 0,
-      color: "#94A3B8",
-      weight: 0.8,
-      dashArray: "2, 3",
-      opacity: 0.5
+    let estadoAtual = {
+        contagemPorMunicipio: {},
+        redecSelecionada: 'TODAS',
+        municipioSelecionado: 'TODOS'
     };
-  }
 
-  // 2. Caso haja uma REDEC específica selecionada
-  if (isRedecEspecifica) {
-    if (isNoEscopo) {
-      // MUNICÍPIOS DA REDEC: TOTALMENTE PREENCHIDOS E DESTACADOS
-      return {
-        fillColor: qtd > 0 ? obterCorPorQuantidade(qtd) : "#2454A6",
-        fillOpacity: 0.88,
-        color: "#ffffff",
-        weight: 1.8,
-        opacity: 1
-      };
-    } else {
-      // RESTO DO ESTADO DO RJ: APENAS O CONTORNO (SEM PREENCHIMENTO)
-      return {
-        fillColor: "transparent",
-        fillOpacity: 0,
-        color: "#94A3B8",
-        weight: 0.9,
-        dashArray: "2, 2",
-        opacity: 0.55
-      };
+    function normalizarTexto(texto) {
+        if (!texto) return '';
+        return String(texto)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9\s-]/g, '')
+            .trim()
+            .toUpperCase();
     }
-  }
 
-  // 3. TODAS AS REDECS: MAPA COROPLÉTICO TOTALMENTE PREENCHIDO
-  return {
-    fillColor: obterCorPorQuantidade(qtd),
-    fillOpacity: qtd > 0 ? 0.85 : 0.45,
-    color: "#ffffff",
-    weight: 1.2,
-    opacity: 1
-  };
-}
+    function obterRedecDoMunicipio(nomeMunicipio) {
+        const nomeNorm = normalizarTexto(nomeMunicipio);
+        if (typeof MAPA_REDECS_RJ === 'undefined') return null;
 
-/* =========================================================================
-   INICIALIZAÇÃO DO MAPA (CRIA A CAMADA GEOJSON UMA ÚNICA VEZ)
-   ========================================================================= */
-function initMap() {
-  if (mapInstance) return;
-
-  // Cria o mapa e ajusta o enquadramento exato para todo o Rio de Janeiro
-  mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false });
-  mapInstance.fitBounds(RJ_BOUNDS, { padding: [10, 10] });
-
-  // Camada base Esri Light Gray Canvas (a mesma do seu projeto de contingência)
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-    attribution: "Tiles &copy; Esri &mdash; SEDEC RJ",
-    maxZoom: 14
-  }).addTo(mapInstance);
-
-  markersLayerGroup = L.layerGroup().addTo(mapInstance);
-
-  mapInstance.on("popupclose", function() {
-    popupCloseTimer = setTimeout(function() {
-      let hasOpen = false;
-      mapInstance.eachLayer(l => { if (l instanceof L.Popup) hasOpen = true; });
-      if (!hasOpen && currentScopeBounds && currentScopeBounds.isValid()) {
-        mapInstance.fitBounds(currentScopeBounds, { padding: [14, 14], animate: true, duration: 0.6 });
-      }
-    }, 80);
-  });
-
-  mapInstance.on("popupopen", function() {
-    if (popupCloseTimer) {
-      clearTimeout(popupCloseTimer);
-      popupCloseTimer = null;
-    }
-  });
-
-  // Tenta criar a malha GeoJSON imediatamente ou aguarda carregar
-  tentarConstruirMalhaGeoJson();
-}
-
-function tentarConstruirMalhaGeoJson() {
-  if (window._geojsonLayer) return;
-
-  let geoFonte = null;
-  if (typeof GEOJSON !== "undefined" && GEOJSON.features) geoFonte = GEOJSON;
-  else if (window.GEOJSON && window.GEOJSON.features) geoFonte = window.GEOJSON;
-  else if (window.geojsonRio && window.geojsonRio.features) geoFonte = window.geojsonRio;
-
-  if (geoFonte && geoFonte.features && geoFonte.features.length) {
-    atualizarMunicipiosEscopo();
-    const ESCOPO_SET = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
-
-    function onEachFeature(feature, layer) {
-      const canonico = getNomeCanonicoMunicipio(feature.properties?.NM_MUN || feature.properties?.name);
-      const redecNome = getRedecDoMunicipio(canonico);
-
-      layer.bindTooltip(`<b>${canonico}</b><br><span style="font-size:10px;opacity:.85;">${redecNome}</span>`, {
-        sticky: true,
-        direction: "top",
-        offset: [0, -10],
-        className: "mun-tooltip",
-        opacity: 1
-      });
-
-      layer.on({
-        mouseover(e) {
-          e.target.setStyle({ fillOpacity: 0.95, weight: 2.5, color: "#16243F" });
-        },
-        mouseout(e) {
-          const ESCOPO_ATUAL = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
-          const contagemMun = obterContagemAtualMunicipios();
-          e.target.setStyle(obterEstiloFeature(e.target.feature, ESCOPO_ATUAL, contagemMun));
-          e.target.closeTooltip();
-        },
-        click(e) {
-          e.target.closeTooltip();
-          const contagemMun = obterContagemAtualMunicipios();
-          const qtd = contagemMun[normalizarTexto(canonico)] || 0;
-          const popupContent = `
-            <div class="popup-nome">${canonico}</div>
-            <div class="popup-redec">${redecNome}</div>
-            <div style="font-size:12px;color:#16243F;margin-top:4px;">
-              <strong>${qtd}</strong> ocorrência(s) registrada(s).
-            </div>
-          `;
-          e.target.bindPopup(popupContent).openPopup();
-          mapInstance.fitBounds(e.target.getBounds(), { padding: [35, 35], animate: true, duration: 0.6 });
+        for (const [munKey, redecVal] of Object.entries(MAPA_REDECS_RJ)) {
+            if (normalizarTexto(munKey) === nomeNorm) {
+                return redecVal;
+            }
         }
-      });
+        return null;
     }
 
-    window._geojsonLayer = L.geoJSON(geoFonte, {
-      style: (feat) => obterEstiloFeature(feat, ESCOPO_SET, {}),
-      onEachFeature
-    }).addTo(mapInstance);
-
-    // Enquadra inicialmente no estado completo do RJ
-    currentScopeBounds = L.latLngBounds(RJ_BOUNDS);
-    mapInstance.fitBounds(currentScopeBounds, { padding: [10, 10], animate: false });
-
-    // Atualiza imediatamente com os dados que já estiverem carregados
-    atualizarCamadasMapa();
-  } else {
-    // Se o mapa.js ainda estiver carregando, tenta novamente após 150ms
-    setTimeout(tentarConstruirMalhaGeoJson, 150);
-  }
-}
-
-function obterContagemAtualMunicipios() {
-  const contagemMun = {};
-  if (Array.isArray(filtrados)) {
-    filtrados.forEach(item => {
-      const cNome = getNomeCanonicoMunicipio(item.m);
-      const norm = normalizarTexto(cNome);
-      if (norm) contagemMun[norm] = (contagemMun[norm] || 0) + (item.o || 1);
-    });
-  }
-  return contagemMun;
-}
-
-/* =========================================================================
-   ATUALIZAÇÃO DE CORES, CONTORNOS E PONTOS (SEM RECRIAR A CAMADA)
-   ========================================================================= */
-function atualizarCamadasMapa() {
-  if (!mapInstance) return;
-
-  atualizarMunicipiosEscopo();
-  const ESCOPO_SET = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
-  const contagemMun = obterContagemAtualMunicipios();
-
-  // 1. Atualiza estilos dos polígonos instantaneamente
-  if (window._geojsonLayer) {
-    window._geojsonLayer.eachLayer(layer => {
-      layer.setStyle(obterEstiloFeature(layer.feature, ESCOPO_SET, contagemMun));
-    });
-
-    // 2. Ajuste dinâmico de Zoom com animação suave
-    if (municipioAtivo !== "TODOS") {
-      const camadaMun = window._geojsonLayer.getLayers().find(l => 
-        normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties?.NM_MUN || l.feature.properties?.name)) === normalizarTexto(municipioAtivo)
-      );
-      if (camadaMun) {
-        currentScopeBounds = camadaMun.getBounds();
-        mapInstance.fitBounds(currentScopeBounds, { padding: [30, 30], animate: true, duration: 0.6 });
-      }
-    } else if (redecAtiva !== "ALL" && redecAtiva !== "TODAS") {
-      const camadasEscopo = window._geojsonLayer.getLayers().filter(l => 
-        ESCOPO_SET.has(normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties?.NM_MUN || l.feature.properties?.name)))
-      );
-      if (camadasEscopo.length > 0) {
-        currentScopeBounds = L.featureGroup(camadasEscopo).getBounds();
-        mapInstance.fitBounds(currentScopeBounds, { padding: [18, 18], animate: true, duration: 0.6 });
-      }
-    } else {
-      currentScopeBounds = L.latLngBounds(RJ_BOUNDS);
-      mapInstance.fitBounds(currentScopeBounds, { padding: [10, 10], animate: true, duration: 0.6 });
+    /**
+     * Escala coroplética de pêssego suave a vermelho escuro
+     */
+    function obterCorCoropletica(qtd) {
+        if (!qtd || qtd <= 0) return '#fee5d9'; // Pêssego suave (0 ocorrências)
+        if (qtd >= 50) return '#67000d';        // Vermelho bordô escuro
+        if (qtd >= 25) return '#a50f15';        // Vermelho escuro
+        if (qtd >= 10) return '#cb181d';        // Vermelho médio-forte
+        if (qtd >= 5)  return '#ef3b2c';        // Vermelho vivo
+        if (qtd >= 2)  return '#fb6a4a';        // Laranja avermelhado
+        return '#fcae91';                       // Salmão claro (1 ocorrência)
     }
-  }
 
-  // 3. Atualiza os pontos de ocorrência (sem piscadeira contínua)
-  markersLayerGroup.clearLayers();
-  if (Array.isArray(filtrados)) {
-    const pontosComCoords = filtrados.filter(i => i.tem_coords);
-    pontosComCoords.slice(0, 350).forEach(pt => {
-      const marker = L.circleMarker([pt.lat, pt.lon], {
-        radius: 4.5,
-        fillColor: '#ea580c',
-        color: '#ffffff',
-        weight: 1.5,
-        opacity: 1,
-        fillOpacity: 0.95
-      });
+    /**
+     * Regra Visual Principal dos Polígonos:
+     * - Todas as REDECs: 92 municípios 100% preenchidos na escala coroplética com borda branca.
+     * - REDEC/Município Filtrado: Municípios da seleção 100% preenchidos e coloridos;
+     *   todos os demais municípios do RJ ficam transparentes exibindo apenas a linha de contorno.
+     */
+    function calcularEstiloPoligono(feature) {
+        const props = feature.properties || {};
+        const nomeMun = props.NM_MUN || props.NM_MUNICIP || props.name || '';
+        const nomeNorm = normalizarTexto(nomeMun);
+        const redecMun = obterRedecDoMunicipio(nomeMun);
+        const qtd = estadoAtual.contagemPorMunicipio[nomeNorm] || 0;
 
-      marker.bindPopup(`
-        <div style="font-size:11.5px; line-height:1.4;">
-          <strong style="color:#ea580c;">${pt.tipo || 'Ocorrência'}</strong><br>
-          <strong>${pt.m}</strong> - ${pt.bairro || ''}<br>
-          <span style="color:#64748b; font-size:11px;">${pt.endereco || ''}</span><br>
-          <span style="color:#0284c7; font-size:10px;">Vtr: ${pt.viatura || '-'} | ${pt.d_fmt} ${pt.h}</span>
-        </div>
-      `);
-      markersLayerGroup.addLayer(marker);
-    });
-  }
+        const filtroRedecAtivo = estadoAtual.redecSelecionada &&
+                                 estadoAtual.redecSelecionada !== 'TODAS';
 
-  setTimeout(() => {
-    if (mapInstance) mapInstance.invalidateSize({ animate: false });
-  }, 80);
-}
+        const filtroMunAtivo = estadoAtual.municipioSelecionado &&
+                               estadoAtual.municipioSelecionado !== 'TODOS';
 
-// Redimensionamento responsivo de tela
-let resizeDebounce = null;
-window.addEventListener("resize", () => {
-  clearTimeout(resizeDebounce);
-  resizeDebounce = setTimeout(() => {
-    if (mapInstance) {
-      mapInstance.invalidateSize({ animate: false });
-      if (currentScopeBounds && currentScopeBounds.isValid()) {
-        mapInstance.fitBounds(currentScopeBounds, { padding: [14, 14], animate: false });
-      }
+        // 1. Visão Geral ("Todas as REDECs")
+        if (!filtroRedecAtivo && !filtroMunAtivo) {
+            return {
+                fillColor: obterCorCoropletica(qtd),
+                weight: 1.2,
+                opacity: 1,
+                color: '#ffffff',
+                fillOpacity: 0.85
+            };
+        }
+
+        // Verifica se o município pertence à seleção atual
+        let pertenceASelecao = false;
+        if (filtroMunAtivo) {
+            pertenceASelecao = (nomeNorm === normalizarTexto(estadoAtual.municipioSelecionado));
+        } else if (filtroRedecAtivo) {
+            pertenceASelecao = (normalizarTexto(redecMun) === normalizarTexto(estadoAtual.redecSelecionada));
+        }
+
+        // 2. Município pertence à REDEC/Filtro selecionado -> 100% preenchido e colorido
+        if (pertenceASelecao) {
+            return {
+                fillColor: obterCorCoropletica(qtd),
+                weight: 1.8,
+                opacity: 1,
+                color: '#ffffff',
+                fillOpacity: 0.92
+            };
+        }
+
+        // 3. Município fora da REDEC selecionada -> Transparente mantendo apenas contorno do Estado
+        return {
+            fillColor: 'transparent',
+            weight: 1.0,
+            opacity: 0.65,
+            color: '#94a3b8',
+            fillOpacity: 0.0
+        };
     }
-  }, 180);
-});
+
+    function inicializar(containerId = 'map') {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (map) {
+            map.invalidateSize();
+            return;
+        }
+
+        map = L.map(containerId, {
+            zoomControl: true,
+            attributionControl: true,
+            minZoom: 6,
+            maxZoom: 18,
+            zoomSnap: 0.25
+        });
+
+        // Mapa Base: Esri Light Gray Canvas
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ | SEDEC-RJ',
+            maxZoom: 16
+        }).addTo(map);
+
+        // Pane elevado para os circleMarkers não piscarem nem ficarem atrás dos polígonos
+        map.createPane('markersPane');
+        map.getPane('markersPane').style.zIndex = 650;
+
+        markersLayer = L.layerGroup().addTo(map);
+
+        criarControleInfo();
+        criarControleLegenda();
+        renderizarMalhaGeoJSON();
+        enquadrarEstadoRJ(false);
+
+        setTimeout(() => {
+            if (map) map.invalidateSize();
+        }, 250);
+
+        window.addEventListener('resize', () => {
+            if (map) map.invalidateSize();
+        });
+    }
+
+    function renderizarMalhaGeoJSON() {
+        const dadosGeo = (typeof GEOJSON !== 'undefined') ? GEOJSON : window.GEOJSON;
+        if (!dadosGeo || !dadosGeo.features) {
+            console.error('[MapaController] Constante GEOJSON não encontrada em mapa.js');
+            return;
+        }
+
+        if (geojsonLayer) {
+            map.removeLayer(geojsonLayer);
+        }
+
+        geojsonLayer = L.geoJSON(dadosGeo, {
+            style: calcularEstiloPoligono,
+            onEachFeature: configurarInteracaoPoligono
+        }).addTo(map);
+    }
+
+    function configurarInteracaoPoligono(feature, layer) {
+        const props = feature.properties || {};
+        const nomeMun = props.NM_MUN || props.NM_MUNICIP || props.name || '';
+
+        layer.on({
+            mouseover: (e) => {
+                const target = e.target;
+                const redecMun = obterRedecDoMunicipio(nomeMun) || 'Não mapeada';
+                const qtd = estadoAtual.contagemPorMunicipio[normalizarTexto(nomeMun)] || 0;
+
+                target.setStyle({
+                    weight: 2.5,
+                    color: '#0f172a'
+                });
+
+                if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+                    target.bringToFront();
+                }
+
+                atualizarPainelInfo({ nome: nomeMun, redec: redecMun, qtd: qtd });
+            },
+            mouseout: (e) => {
+                if (geojsonLayer) {
+                    geojsonLayer.resetStyle(e.target);
+                }
+                atualizarPainelInfo(null);
+            },
+            click: () => {
+                if (typeof window.selecionarMunicipioPeloMapa === 'function') {
+                    window.selecionarMunicipioPeloMapa(nomeMun);
+                }
+            }
+        });
+    }
+
+    function criarControleInfo() {
+        infoControl = L.control({ position: 'topright' });
+        infoControl.onAdd = function () {
+            this._div = L.DomUtil.create('div', 'mapa-info-box');
+            this._div.style.cssText = 'background:rgba(255,255,255,0.94); padding:8px 12px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-family:Inter,sans-serif; font-size:12px; line-height:1.4; min-width:175px; pointer-events:none; border-left:4px solid #cb181d;';
+            atualizarPainelInfo(null);
+            return this._div;
+        };
+        infoControl.addTo(map);
+    }
+
+    function atualizarPainelInfo(dados) {
+        if (!infoControl || !infoControl._div) return;
+        if (!dados) {
+            infoControl._div.innerHTML = '<strong>Estado do Rio de Janeiro</strong><br><span style="color:#64748b;">Passe o mouse sobre um município</span>';
+        } else {
+            infoControl._div.innerHTML = `
+                <strong style="font-size:13px; color:#0f172a;">${dados.nome}</strong><br>
+                <span style="color:#475569; font-weight:600;">${dados.redec}</span><br>
+                <span style="color:#cb181d; font-weight:700;">${dados.qtd}</span> ocorrência(s)
+            `;
+        }
+    }
+
+    function criarControleLegenda() {
+        legendControl = L.control({ position: 'bottomright' });
+        legendControl.onAdd = function () {
+            const div = L.DomUtil.create('div', 'mapa-legend-box');
+            div.style.cssText = 'background:rgba(255,255,255,0.94); padding:8px 10px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.15); font-family:Inter,sans-serif; font-size:11px; line-height:18px; color:#334155;';
+            const faixas = [0, 1, 2, 5, 10, 25, 50];
+            let html = '<strong style="display:block; margin-bottom:4px;">Ocorrências</strong>';
+
+            for (let i = 0; i < faixas.length; i++) {
+                const de = faixas[i];
+                const ate = faixas[i + 1];
+                const cor = obterCorCoropletica(de);
+                const rotulo = de === 0 ? '0' : (ate ? `${de} &ndash; ${ate - 1}` : `${de}+`);
+                html += `
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <i style="width:13px; height:13px; background:${cor}; display:inline-block; border:1px solid #cbd5e1; border-radius:2px;"></i>
+                        <span>${rotulo}</span>
+                    </div>
+                `;
+            }
+            div.innerHTML = html;
+            return div;
+        };
+        legendControl.addTo(map);
+    }
+
+    function enquadrarEstadoRJ(animar = true) {
+        if (!map) return;
+        map.fitBounds(RJ_BOUNDS, {
+            padding: [14, 14],
+            animate: animar,
+            duration: 0.6
+        });
+    }
+
+    function ajustarCameraParaFiltro(redec, municipio) {
+        if (!map || !geojsonLayer) return;
+
+        const filtroRedecAtivo = redec && redec !== 'TODAS';
+        const filtroMunAtivo = municipio && municipio !== 'TODOS';
+
+        if (!filtroRedecAtivo && !filtroMunAtivo) {
+            enquadrarEstadoRJ(true);
+            return;
+        }
+
+        const boundsGrupo = L.latLngBounds([]);
+
+        geojsonLayer.eachLayer((layer) => {
+            const props = layer.feature.properties || {};
+            const nomeMun = props.NM_MUN || props.NM_MUNICIP || props.name || '';
+            const nomeNorm = normalizarTexto(nomeMun);
+            const redecMun = obterRedecDoMunicipio(nomeMun);
+
+            if (filtroMunAtivo && nomeNorm === normalizarTexto(municipio)) {
+                boundsGrupo.extend(layer.getBounds());
+            } else if (!filtroMunAtivo && filtroRedecAtivo && normalizarTexto(redecMun) === normalizarTexto(redec)) {
+                boundsGrupo.extend(layer.getBounds());
+            }
+        });
+
+        if (boundsGrupo.isValid()) {
+            map.fitBounds(boundsGrupo, {
+                padding: [28, 28],
+                maxZoom: filtroMunAtivo ? 11.25 : 9.5,
+                animate: true,
+                duration: 0.6
+            });
+        } else {
+            enquadrarEstadoRJ(true);
+        }
+    }
+
+    function plotarCoordenadas(registros) {
+        if (!map || !markersLayer) return;
+
+        markersLayer.clearLayers();
+        if (!Array.isArray(registros) || registros.length === 0) return;
+
+        registros.forEach((item) => {
+            const lat = item.latitude;
+            const lng = item.longitude;
+
+            if (lat !== null && lng !== null && !isNaN(lat) && !isNaN(lng) &&
+                lat <= -20.5 && lat >= -23.6 && lng >= -45.0 && lng <= -40.7) {
+
+                const marker = L.circleMarker([lat, lng], {
+                    pane: 'markersPane',
+                    radius: 6,
+                    fillColor: '#ea580c',
+                    color: '#991b1b',
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                });
+
+                marker.bindPopup(`
+                    <div style="font-family:Inter,sans-serif; font-size:12px; line-height:1.4;">
+                        <strong style="color:#991b1b;">${item.evento || 'Ocorrência'}</strong><br>
+                        <strong>Município:</strong> ${item.municipio || '-'}<br>
+                        <strong>REDEC:</strong> ${item.redec || '-'}<br>
+                        ${item.data ? `<strong>Data:</strong> ${item.data}<br>` : ''}
+                        <span style="color:#64748b; font-size:11px;">Coord: ${lat.toFixed(4)}, ${lng.toFixed(4)}</span>
+                    </div>
+                `);
+
+                markersLayer.addLayer(marker);
+            }
+        });
+    }
+
+    function atualizarMapa({
+        registrosFiltrados = [],
+        redec = 'TODAS',
+        municipio = 'TODOS',
+        moverCamera = true
+    } = {}) {
+        if (!map) inicializar('map');
+
+        const mudouFiltroGeografico =
+            estadoAtual.redecSelecionada !== redec ||
+            estadoAtual.municipioSelecionado !== municipio;
+
+        estadoAtual.redecSelecionada = redec || 'TODAS';
+        estadoAtual.municipioSelecionado = municipio || 'TODOS';
+
+        const novaContagem = {};
+        if (Array.isArray(registrosFiltrados)) {
+            registrosFiltrados.forEach((reg) => {
+                const chave = normalizarTexto(reg.municipio);
+                if (chave) {
+                    novaContagem[chave] = (novaContagem[chave] || 0) + 1;
+                }
+            });
+        }
+
+        estadoAtual.contagemPorMunicipio = novaContagem;
+
+        if (geojsonLayer) {
+            geojsonLayer.setStyle(calcularEstiloPoligono);
+        } else {
+            renderizarMalhaGeoJSON();
+        }
+
+        plotarCoordenadas(registrosFiltrados);
+
+        if (moverCamera && mudouFiltroGeografico) {
+            ajustarCameraParaFiltro(estadoAtual.redecSelecionada, estadoAtual.municipioSelecionado);
+        }
+    }
+
+    return {
+        inicializar,
+        atualizarMapa,
+        enquadrarEstadoRJ,
+        ajustarCameraParaFiltro
+    };
+})();
+
+window.MapaController = MapaController;
