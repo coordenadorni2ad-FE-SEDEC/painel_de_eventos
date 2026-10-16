@@ -1,101 +1,220 @@
-/* =========================================================================
-   PADRONIZAÇÃO, SINCRONIZAÇÃO E CACHE LOCAL
-   ========================================================================= */
+/**
+ * js/data.js
+ * Funções de normalização de texto, datas no padrão brasileiro (DD/MM/AAAA),
+ * coordenadas, sanitização numérica e enriquecimento dos registros vindos da API.
+ */
 
-function normalizarDataParaISO(dataBruta) {
-  if (!dataBruta) return '';
-  let str = String(dataBruta).replace(/[`´']/g, '').trim();
-  const mIso = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (mIso) return `${mIso[1]}-${mIso[2].padStart(2, '0')}-${mIso[3].padStart(2, '0')}`;
-  const mBr = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
-  if (mBr) {
-    let y = mBr[3].length === 2 ? "20" + mBr[3] : mBr[3];
-    return `${y}-${mBr[2].padStart(2, '0')}-${mBr[1].padStart(2, '0')}`;
-  }
-  return '';
-}
+const DataProcessor = (() => {
 
-function formatarParaDDMMAAAA(dataISO) {
-  if (!dataISO) return '-';
-  const p = dataISO.split('-');
-  return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dataISO;
-}
+    // Cria índice normalizado (sem acento/maiúsculo) -> Nome Canônico do Município e REDEC
+    const INDICE_MUNICIPIOS = {};
+    if (typeof MAPA_REDECS_RJ !== 'undefined') {
+        for (const [nomeCanonico, redec] of Object.entries(MAPA_REDECS_RJ)) {
+            const chave = normalizarChave(nomeCanonico);
+            INDICE_MUNICIPIOS[chave] = {
+                municipioCanonico: nomeCanonico,
+                redec: redec
+            };
+        }
+    }
 
-function parseNum(val) {
-  if (val === undefined || val === null || val === "") return 0;
-  const n = parseFloat(String(val).replace(/\./g, "").replace(",", "."));
-  return isNaN(n) ? 0 : n;
-}
+    function normalizarChave(str) {
+        if (!str) return '';
+        return String(str)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9\s-]/g, '')
+            .trim()
+            .toUpperCase();
+    }
 
-function padronizarLinha(raw, tipo) {
-  const keys = Object.keys(raw);
-  const findKey = (term) => keys.find(k => k.includes(term));
+    /**
+     * Resolve o nome oficial do município e sua REDEC a partir de qualquer variação na planilha
+     */
+    function resolverMunicipioERedec(nomeBruto, redecBruta) {
+        const chave = normalizarChave(nomeBruto);
+        if (chave && INDICE_MUNICIPIOS[chave]) {
+            return {
+                municipio: INDICE_MUNICIPIOS[chave].municipioCanonico,
+                redec: INDICE_MUNICIPIOS[chave].redec
+            };
+        }
+        return {
+            municipio: nomeBruto ? String(nomeBruto).trim() : 'Não Informado',
+            redec: redecBruta ? String(redecBruta).trim() : 'NÃO IDENTIFICADA'
+        };
+    }
 
-  if (tipo === "sisgeo") {
-    const kData = findKey("Data Ocorrência") || findKey("DATA") || keys[3];
-    const kMun = findKey("Município") || findKey("MUNIC") || keys[15];
-    const kTipo = findKey("Tipo") || keys[5];
-    const kSubtipo = findKey("Subtipo") || keys[6];
-    const kCoords = findKey("Latitude/Longitude") || findKey("COORD") || keys[17];
-    const kEnd = findKey("Endereço") || keys[8];
-    const kBairro = findKey("Bairro") || keys[19];
-    const kViatura = findKey("Viatura") || keys[7];
+    /**
+     * Converte qualquer formato de data (ISO, Date, DD/MM/YYYY, YYYY-MM-DD) para:
+     * { dataBR: "DD/MM/AAAA", dataISO: "AAAA-MM-DD", timestamp: Number }
+     */
+    function normalizarData(valor) {
+        if (!valor) return { dataBR: '', dataISO: '', timestamp: null };
 
-    const dIso = normalizarDataParaISO(raw[kData]);
-    const munBruto = raw[kMun] ? String(raw[kMun]).trim() : 'NÃO INFORMADO';
-    const canonico = getNomeCanonicoMunicipio(munBruto);
-    
-    let lat = null, lon = null;
-    const coordsStr = String(raw[kCoords] || '').trim();
-    if (coordsStr.includes(',')) {
-      const parts = coordsStr.split(',');
-      const pLat = parseFloat(parts[0].trim());
-      const pLon = parseFloat(parts[1].trim());
-      if (!isNaN(pLat) && !isNaN(pLon) && pLat < 0 && pLon < 0) {
-        lat = pLat; lon = pLon;
-      }
+        const str = String(valor).trim();
+
+        // 1) Formato DD/MM/AAAA (com ou sem hora)
+        const matchBR = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+        if (matchBR) {
+            const dia = matchBR[1].padStart(2, '0');
+            const mes = matchBR[2].padStart(2, '0');
+            const ano = matchBR[3];
+            const iso = `${ano}-${mes}-${dia}`;
+            const dt = new Date(`${iso}T12:00:00`);
+            return {
+                dataBR: `${dia}/${mes}/${ano}`,
+                dataISO: iso,
+                timestamp: isNaN(dt.getTime()) ? null : dt.getTime()
+            };
+        }
+
+        // 2) Formato ISO AAAA-MM-DD (com ou sem T00:00:00)
+        const matchISO = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
+        if (matchISO) {
+            const ano = matchISO[1];
+            const mes = matchISO[2].padStart(2, '0');
+            const dia = matchISO[3].padStart(2, '0');
+            const iso = `${ano}-${mes}-${dia}`;
+            const dt = new Date(`${iso}T12:00:00`);
+            return {
+                dataBR: `${dia}/${mes}/${ano}`,
+                dataISO: iso,
+                timestamp: isNaN(dt.getTime()) ? null : dt.getTime()
+            };
+        }
+
+        // 3) Fallback para Date nativo
+        const dt = new Date(str);
+        if (!isNaN(dt.getTime())) {
+            const dia = String(dt.getDate()).padStart(2, '0');
+            const mes = String(dt.getMonth() + 1).padStart(2, '0');
+            const ano = dt.getFullYear();
+            const iso = `${ano}-${mes}-${dia}`;
+            return {
+                dataBR: `${dia}/${mes}/${ano}`,
+                dataISO: iso,
+                timestamp: new Date(`${iso}T12:00:00`).getTime()
+            };
+        }
+
+        return { dataBR: str, dataISO: '', timestamp: null };
+    }
+
+    /**
+     * Busca um campo dentro de um objeto testando múltiplos nomes possíveis de coluna
+     */
+    function extrairCampo(obj, candidatos) {
+        if (!obj || typeof obj !== 'object') return '';
+        const chavesObj = Object.keys(obj);
+
+        for (const cand of candidatos) {
+            const candNorm = normalizarChave(cand);
+            for (const k of chavesObj) {
+                if (normalizarChave(k) === candNorm && obj[k] !== null && obj[k] !== undefined && String(obj[k]).trim() !== '') {
+                    return obj[k];
+                }
+            }
+        }
+        return '';
+    }
+
+    /**
+     * Padroniza uma linha de qualquer aba da planilha para uso uniforme no painel
+     */
+    function padronizarRegistro(linhaBruta, idx) {
+        const munBruto = extrairCampo(linhaBruta, [
+            'MUNICIPIO', 'MUNICÍPIO', 'CIDADE', 'LOCALIDADE', 'NM_MUN', 'NOME DO MUNICIPIO'
+        ]);
+        const redecBruta = extrairCampo(linhaBruta, [
+            'REDEC', 'REGIONAL', 'REGIAO', 'REGIÃO', 'COORDENADORIA'
+        ]);
+        const dataBruta = extrairCampo(linhaBruta, [
+            'DATA', 'DATA DO EVENTO', 'DATA DA OCORRENCIA', 'DATA_OCORRENCIA', 'CARIMBO DE DATA/HORA', 'TIMESTAMP', 'CRIADO EM', 'DT_EVENTO'
+        ]);
+        const eventoBruto = extrairCampo(linhaBruta, [
+            'EVENTO', 'TIPO', 'NATUREZA', 'OCORRENCIA', 'OCORRÊNCIA', 'COBRADE', 'DESastre', 'SITUACAO', 'SITUAÇÃO', 'ASSUNTO', 'DESCRICAO'
+        ]);
+        const latBruta = extrairCampo(linhaBruta, ['LATITUDE', 'LAT', 'Y', 'COORD_LAT']);
+        const lngBruta = extrairCampo(linhaBruta, ['LONGITUDE', 'LONG', 'LNG', 'LON', 'X', 'COORD_LNG']);
+
+        const geo = resolverMunicipioERedec(munBruto, redecBruta);
+        const infoData = normalizarData(dataBruta);
+
+        const lat = parseFloat(String(latBruta).replace(',', '.'));
+        const lng = parseFloat(String(lngBruta).replace(',', '.'));
+
+        return {
+            _id: idx + 1,
+            _raw: linhaBruta,
+            municipio: geo.municipio,
+            redec: geo.redec,
+            data: infoData.dataBR,
+            dataISO: infoData.dataISO,
+            timestamp: infoData.timestamp,
+            evento: eventoBruto ? String(eventoBruto).trim() : 'Registro Operacional',
+            latitude: !isNaN(lat) ? lat : null,
+            longitude: !isNaN(lng) ? lng : null
+        };
+    }
+
+    /**
+     * Normaliza o payload completo retornado pela API do Google Apps Script
+     */
+    function processarRespostaAPI(json) {
+        const resultadoPorModulo = {};
+
+        // Inicializa todos os módulos visíveis com lista vazia
+        CONFIG.MODULOS_VISIVEIS.forEach(mod => {
+            resultadoPorModulo[mod.id] = [];
+        });
+
+        if (!json) return resultadoPorModulo;
+
+        // Caso a API retorne diretamente um Array (aba única)
+        if (Array.isArray(json)) {
+            resultadoPorModulo[CONFIG.MODULOS_VISIVEIS[0].id] = json.map(padronizarRegistro);
+            return resultadoPorModulo;
+        }
+
+        // Caso a API retorne um Objeto { "SISGEO": [...], "EVENTOS REDECS": [...], ... } ou { data: { ... } }
+        const fonteAbas = (json.data && typeof json.data === 'object' && !Array.isArray(json.data))
+            ? json.data
+            : json;
+
+        const chavesRetornadas = Object.keys(fonteAbas);
+
+        CONFIG.MODULOS_VISIVEIS.forEach(modulo => {
+            const aliasesNorm = modulo.aliases.map(normalizarChave);
+
+            const chaveEncontrada = chavesRetornadas.find(k => aliasesNorm.includes(normalizarChave(k)));
+            if (chaveEncontrada && Array.isArray(fonteAbas[chaveEncontrada])) {
+                resultadoPorModulo[modulo.id] = fonteAbas[chaveEncontrada]
+                    .filter(item => item && typeof item === 'object')
+                    .map((item, i) => padronizarRegistro(item, i));
+            }
+        });
+
+        // Se nenhuma aba casou pelos aliases, mas há arrays no objeto, aloca o primeiro array na primeira aba
+        const totalCarregado = Object.values(resultadoPorModulo).reduce((acc, arr) => acc + arr.length, 0);
+        if (totalCarregado === 0) {
+            for (const k of chavesRetornadas) {
+                if (Array.isArray(fonteAbas[k]) && fonteAbas[k].length > 0) {
+                    resultadoPorModulo[CONFIG.MODULOS_VISIVEIS[0].id] = fonteAbas[k].map((item, i) => padronizarRegistro(item, i));
+                    break;
+                }
+            }
+        }
+
+        return resultadoPorModulo;
     }
 
     return {
-      d_iso: dIso,
-      d_fmt: formatarParaDDMMAAAA(dIso),
-      h: raw[kData] ? String(raw[kData]).substring(11, 16) : '',
-      m: canonico,
-      r: getRedecDoMunicipio(canonico),
-      tipo: raw[kTipo] ? String(raw[kTipo]).trim() : 'Outros',
-      subtipo: raw[kSubtipo] ? String(raw[kSubtipo]).trim() : '',
-      endereco: raw[kEnd] ? String(raw[kEnd]).trim() : '',
-      bairro: raw[kBairro] ? String(raw[kBairro]).trim() : '',
-      viatura: raw[kViatura] ? String(raw[kViatura]).trim() : '',
-      lat: lat, lon: lon,
-      tem_coords: (lat !== null && lon !== null)
+        normalizarChave,
+        normalizarData,
+        resolverMunicipioERedec,
+        processarRespostaAPI
     };
-  } else if (tipo === "eventos") {
-    const dIso = normalizarDataParaISO(raw[findKey("DATA")]);
-    const munBruto = raw[findKey("MUNIC")] ? String(raw[findKey("MUNIC")]).trim() : 'NÃO INFORMADO';
-    const canonico = getNomeCanonicoMunicipio(munBruto);
+})();
 
-    return {
-      d_iso: dIso,
-      d_fmt: formatarParaDDMMAAAA(dIso),
-      h: raw[findKey("HORA")] ? String(raw[findKey("HORA")]).substring(0, 5) : '',
-      m: canonico,
-      r: getRedecDoMunicipio(canonico),
-      desc: raw[findKey("DESCRI")] ? String(raw[findKey("DESCRI")]).trim() : '',
-      o: parseNum(raw[findKey("SOMAT")]),
-      ob: parseNum(raw[findKey("ÓBITOS")] || raw[findKey("OBITOS")]),
-      db: parseNum(raw[findKey("DESABRIG")]),
-      dl: parseNum(raw[findKey("DESALOJ")]),
-      af: parseNum(raw[findKey("AFETADOS")]),
-      dz: parseNum(raw[findKey("DESLIZ")]),
-      in: parseNum(raw[findKey("INUNDA")]),
-      ar: parseNum(raw[findKey("ÁRVORE")]),
-      es: parseNum(raw[findKey("DESABAMENTO")]),
-      pa: parseNum(raw[findKey("PONTOS DE APOIO")]),
-      sr: parseNum(raw[findKey("SIRENE - MOBILIZA")]),
-      dc: raw[findKey("DECRETO")] ? String(raw[findKey("DECRETO")]).trim() : '',
-      lat: null, lon: null, tem_coords: false
-    };
-  }
-  return raw;
-}
+window.DataProcessor = DataProcessor;
