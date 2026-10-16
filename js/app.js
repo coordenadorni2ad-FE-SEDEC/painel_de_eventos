@@ -1,11 +1,6 @@
 /**
  * js/app.js
- * Orquestrador principal do Painel SEDEC-RJ / REDECs:
- * - Cache inteligente (localStorage + verificação em segundo plano a cada 5 min)
- * - Navegação entre abas (módulos operacionais)
- * - Filtro de período (Hoje, 7D, 30D, Mês Atual, Tudo e intervalo personalizado)
- * - Filtros dependentes (REDEC <-> Município + Busca textual)
- * - Atualização sincronizada de KPIs, Gráfico por REDEC, Tabela paginada e Mapa Leaflet
+ * Orquestrador principal do Painel SEDEC-RJ / REDECs
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,15 +12,16 @@ document.addEventListener('DOMContentLoaded', () => {
         dataFimISO: '',
         redecSelecionada: 'TODAS',
         municipioSelecionado: 'TODOS',
+        eventoSelecionado: 'TODOS',
         termoBusca: '',
         registrosFiltrados: [],
         paginaAtual: 1
     };
 
-    // Referências de DOM
     const elTabs = document.getElementById('module-tabs');
     const elSelectRedec = document.getElementById('select-redec');
     const elSelectMunicipio = document.getElementById('select-municipio');
+    const elSelectEvento = document.getElementById('select-evento');
     const elInputBusca = document.getElementById('input-busca');
     const elDateStart = document.getElementById('date-start');
     const elDateEnd = document.getElementById('date-end');
@@ -34,27 +30,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const elLastSyncText = document.getElementById('last-sync-text');
     const elMapFilterStatus = document.getElementById('map-filter-status');
 
-    // 1. Inicializa o Mapa Leaflet
     MapaController.inicializar('map');
 
-    // 2. Popula Select de REDECs
     popularSelectRedecs();
     popularSelectMunicipios('TODAS');
-
-    // 3. Registra Eventos de Interface
+    popularSelectEventos();
     registrarEventosUI();
-
-    // 4. Carrega Dados (Cache Local imediato + Sincronização com API)
     carregarDadosIniciais();
 
-    // 5. Verificação silenciosa a cada 5 minutos
-    setInterval(() => {
-        sincronizarComAPI(true);
-    }, CONFIG.CACHE_TTL_MS);
+    setInterval(() => { sincronizarComAPI(true); }, CONFIG.CACHE_TTL_MS);
 
-    // =========================================================================
-    // FUNÇÕES DE DADOS E CACHE
-    // =========================================================================
     function carregarDadosIniciais() {
         try {
             const cacheSalvo = localStorage.getItem(CONFIG.CACHE_KEY);
@@ -62,22 +47,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const parsed = JSON.parse(cacheSalvo);
                 if (parsed && parsed.dados) {
                     estadoApp.bancoPorModulo = parsed.dados;
-                    atualizarStatusSync('online', `Cache (${ parsed.horario || 'recente' })`);
+                    atualizarStatusSync('online', `Cache (${parsed.horario || 'recente'})`);
                     renderizarAbas();
+                    popularSelectEventos();
                     aplicarFiltros(false);
                 }
             }
         } catch (err) {
             console.warn('Falha ao ler cache local:', err);
         }
-
         sincronizarComAPI(false);
     }
 
     async function sincronizarComAPI(silencioso = false) {
-        if (!silencioso) {
-            atualizarStatusSync('syncing', 'Sincronizando...');
-        }
+        if (!silencioso) atualizarStatusSync('syncing', 'Sincronizando...');
 
         try {
             const resposta = await fetch(CONFIG.API_URL, { cache: 'no-store' });
@@ -97,33 +80,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     timestamp: agora.getTime(),
                     dados: processado
                 }));
-            } catch (e) {
-                console.warn('Aviso: limite de localStorage atingido.');
-            }
+            } catch (e) {}
 
             atualizarStatusSync('online', `Atualizado às ${horarioFormatado}`);
             renderizarAbas();
+            popularSelectEventos();
             aplicarFiltros(false);
         } catch (erro) {
-            console.error('Erro ao sincronizar com a API:', erro);
+            console.error('Erro ao sincronizar:', erro);
             atualizarStatusSync('error', 'Modo Offline (Cache)');
             renderizarAbas();
+            popularSelectEventos();
             aplicarFiltros(false);
         }
     }
 
     function atualizarStatusSync(estado, texto) {
-        if (elStatusDot) {
-            elStatusDot.className = `status-dot ${estado}`;
-        }
-        if (elLastSyncText) {
-            elLastSyncText.textContent = texto;
-        }
+        if (elStatusDot) elStatusDot.className = `status-dot ${estado}`;
+        if (elLastSyncText) elLastSyncText.textContent = texto;
     }
 
-    // =========================================================================
-    // NAVEGAÇÃO POR ABAS E PERÍODO
-    // =========================================================================
     function renderizarAbas() {
         if (!elTabs) return;
         elTabs.innerHTML = '';
@@ -133,14 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = `tab-btn ${estadoApp.moduloAtivo === mod.id ? 'active' : ''}`;
-            btn.innerHTML = `
-                <span>${mod.rotulo}</span>
-                <span class="tab-count">${lista.length}</span>
-            `;
+            btn.innerHTML = `<span>${mod.rotulo}</span><span class="tab-count">${lista.length}</span>`;
             btn.addEventListener('click', () => {
                 estadoApp.moduloAtivo = mod.id;
                 estadoApp.paginaAtual = 1;
                 renderizarAbas();
+                popularSelectEventos();
                 aplicarFiltros(false);
             });
             elTabs.appendChild(btn);
@@ -191,9 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
         aplicarFiltros(false);
     }
 
-    // =========================================================================
-    // FILTROS DEPENDENTES (REDEC <-> MUNICÍPIO)
-    // =========================================================================
     function popularSelectRedecs() {
         if (!elSelectRedec) return;
         elSelectRedec.innerHTML = '<option value="TODAS">Todas as REDECs (11)</option>';
@@ -230,12 +201,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Permite clicar em um polígono no mapa para filtrar o município
+    function popularSelectEventos() {
+        if (!elSelectEvento) return;
+        const valorAnterior = elSelectEvento.value;
+        elSelectEvento.innerHTML = '<option value="TODOS">Todos os Eventos</option>';
+
+        const baseModulo = estadoApp.bancoPorModulo[estadoApp.moduloAtivo] || [];
+        const eventosSet = new Set();
+
+        baseModulo.forEach(item => {
+            if (item.evento && item.evento.trim() !== '') {
+                eventosSet.add(item.evento.trim());
+            }
+        });
+
+        const eventosOrdenados = Array.from(eventosSet).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+        eventosOrdenados.forEach(ev => {
+            const opt = document.createElement('option');
+            opt.value = ev;
+            opt.textContent = ev;
+            elSelectEvento.appendChild(opt);
+        });
+
+        if (eventosOrdenados.includes(valorAnterior)) {
+            elSelectEvento.value = valorAnterior;
+        } else {
+            elSelectEvento.value = 'TODOS';
+            estadoApp.eventoSelecionado = 'TODOS';
+        }
+    }
+
     window.selecionarMunicipioPeloMapa = (nomeMunicipio) => {
         const info = DataProcessor.resolverMunicipioERedec(nomeMunicipio, '');
         if (!info || !info.municipio) return;
 
-        // Se clicar no mesmo município já filtrado, limpa o filtro e volta para visão geral
         if (estadoApp.municipioSelecionado === info.municipio) {
             estadoApp.redecSelecionada = 'TODAS';
             estadoApp.municipioSelecionado = 'TODOS';
@@ -256,9 +256,6 @@ document.addEventListener('DOMContentLoaded', () => {
         aplicarFiltros(true);
     };
 
-    // =========================================================================
-    // APLICAÇÃO DOS FILTROS E ATUALIZAÇÃO DE COMPONENTES
-    // =========================================================================
     function aplicarFiltros(moverCameraMapa = true) {
         const baseModulo = estadoApp.bancoPorModulo[estadoApp.moduloAtivo] || [];
 
@@ -267,21 +264,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const buscaNorm = DataProcessor.normalizarChave(estadoApp.termoBusca);
 
         estadoApp.registrosFiltrados = baseModulo.filter(item => {
-            // 1. Filtro de Período
             if (tsInicio && (!item.timestamp || item.timestamp < tsInicio)) return false;
             if (tsFim && (!item.timestamp || item.timestamp > tsFim)) return false;
 
-            // 2. Filtro de REDEC
-            if (estadoApp.redecSelecionada !== 'TODAS' && item.redec !== estadoApp.redecSelecionada) {
-                return false;
-            }
+            if (estadoApp.redecSelecionada !== 'TODAS' && item.redec !== estadoApp.redecSelecionada) return false;
+            if (estadoApp.municipioSelecionado !== 'TODOS' && item.municipio !== estadoApp.municipioSelecionado) return false;
+            if (estadoApp.eventoSelecionado !== 'TODOS' && item.evento.trim() !== estadoApp.eventoSelecionado) return false;
 
-            // 3. Filtro de Município
-            if (estadoApp.municipioSelecionado !== 'TODOS' && item.municipio !== estadoApp.municipioSelecionado) {
-                return false;
-            }
-
-            // 4. Filtro de Busca Rápida
             if (buscaNorm) {
                 const textoLinha = DataProcessor.normalizarChave(
                     `${item.municipio} ${item.redec} ${item.evento} ${item.data} ${JSON.stringify(item._raw)}`
@@ -310,7 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (estadoApp.municipioSelecionado !== 'TODOS') {
             elMapFilterStatus.textContent = `Foco Municipal: ${estadoApp.municipioSelecionado} (${estadoApp.redecSelecionada})`;
         } else if (estadoApp.redecSelecionada !== 'TODAS') {
-            elMapFilterStatus.textContent = `Visão Regional: ${estadoApp.redecSelecionada} (Demais municípios em contorno)`;
+            elMapFilterStatus.textContent = `Visão Regional: ${estadoApp.redecSelecionada}`;
         } else {
             elMapFilterStatus.textContent = 'Visão Estadual: Todas as REDECs (92 Municípios)';
         }
@@ -322,12 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const contagemRedec = {};
 
         lista.forEach(item => {
-            if (item.municipio && item.municipio !== 'Não Informado') {
-                setMunicipios.add(item.municipio);
-            }
-            if (item.redec && item.redec !== 'NÃO IDENTIFICADA') {
-                contagemRedec[item.redec] = (contagemRedec[item.redec] || 0) + 1;
-            }
+            if (item.municipio && item.municipio !== 'Não Informado') setMunicipios.add(item.municipio);
+            if (item.redec && item.redec !== 'NÃO IDENTIFICADA') contagemRedec[item.redec] = (contagemRedec[item.redec] || 0) + 1;
         });
 
         let topRedecNome = '-';
@@ -355,12 +340,15 @@ document.addEventListener('DOMContentLoaded', () => {
         LISTA_REDECS_RJ.forEach(r => { contagem[r] = 0; });
 
         estadoApp.registrosFiltrados.forEach(item => {
-            if (contagem[item.redec] !== undefined) {
-                contagem[item.redec]++;
-            }
+            if (contagem[item.redec] !== undefined) contagem[item.redec]++;
         });
 
-        const ranking = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
+        const ranking = Object.entries(contagem).sort((a, b) => {
+            const numA = parseInt(a[0].replace(/\D/g, '')) || 0;
+            const numB = parseInt(b[0].replace(/\D/g, '')) || 0;
+            return numA - numB;
+        });
+
         const maiorValor = Math.max(1, ...ranking.map(([, v]) => v));
 
         container.innerHTML = '';
@@ -401,14 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = estadoApp.registrosFiltrados.length;
         counter.textContent = `${total} registro(s) encontrado(s)`;
 
-        thead.innerHTML = `
-            <tr>
-                <th>Data</th>
-                <th>Município</th>
-                <th>REDEC</th>
-                <th>Descrição / Evento</th>
-            </tr>
-        `;
+        thead.innerHTML = `<tr><th>Data</th><th>Município</th><th>REDEC</th><th>Descrição / Evento</th></tr>`;
 
         const totalPaginas = Math.max(1, Math.ceil(total / CONFIG.ITENS_POR_PAGINA));
         if (estadoApp.paginaAtual > totalPaginas) estadoApp.paginaAtual = totalPaginas;
@@ -418,28 +399,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const paginaItens = estadoApp.registrosFiltrados.slice(inicio, fim);
 
         tbody.innerHTML = '';
-
         if (paginaItens.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="4" style="text-align:center; padding:22px; color:#64748b;">
-                        Nenhum registro encontrado para os filtros selecionados.
-                    </td>
-                </tr>
-            `;
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:22px; color:#64748b;">Nenhum registro encontrado.</td></tr>`;
         } else {
             paginaItens.forEach(item => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${item.data || '-'}</td>
-                    <td><strong>${item.municipio}</strong></td>
-                    <td>${item.redec.replace('REDEC ', '')}</td>
-                    <td title="${item.evento}">${item.evento}</td>
-                `;
+                tr.innerHTML = `<td>${item.data || '-'}</td><td><strong>${item.municipio}</strong></td><td>${item.redec.replace('REDEC ', '')}</td><td title="${item.evento}">${item.evento}</td>`;
                 tr.addEventListener('click', () => {
-                    if (item.municipio && item.municipio !== 'Não Informado') {
-                        window.selecionarMunicipioPeloMapa(item.municipio);
-                    }
+                    if (item.municipio && item.municipio !== 'Não Informado') window.selecionarMunicipioPeloMapa(item.municipio);
                 });
                 tbody.appendChild(tr);
             });
@@ -450,11 +417,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnNext.disabled = estadoApp.paginaAtual >= totalPaginas;
     }
 
-    // =========================================================================
-    // EVENTOS DE INTERAÇÃO DO USUÁRIO
-    // =========================================================================
     function registrarEventosUI() {
-        // Mudança de REDEC
         elSelectRedec.addEventListener('change', (e) => {
             estadoApp.redecSelecionada = e.target.value;
             estadoApp.municipioSelecionado = 'TODOS';
@@ -463,7 +426,6 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltros(true);
         });
 
-        // Mudança de Município
         elSelectMunicipio.addEventListener('change', (e) => {
             estadoApp.municipioSelecionado = e.target.value;
             if (estadoApp.municipioSelecionado !== 'TODOS') {
@@ -479,21 +441,22 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltros(true);
         });
 
-        // Busca textual
+        elSelectEvento.addEventListener('change', (e) => {
+            estadoApp.eventoSelecionado = e.target.value;
+            estadoApp.paginaAtual = 1;
+            aplicarFiltros(false);
+        });
+
         elInputBusca.addEventListener('input', (e) => {
             estadoApp.termoBusca = e.target.value;
             estadoApp.paginaAtual = 1;
             aplicarFiltros(false);
         });
 
-        // Botões rápidos de período
         document.querySelectorAll('.btn-period').forEach(btn => {
-            btn.addEventListener('click', () => {
-                definirAtalhoPeriodo(btn.dataset.period);
-            });
+            btn.addEventListener('click', () => { definirAtalhoPeriodo(btn.dataset.period); });
         });
 
-        // Datas personalizadas
         const onCustomDateChange = () => {
             estadoApp.periodoAtivo = 'custom';
             estadoApp.dataInicioISO = elDateStart.value;
@@ -505,34 +468,27 @@ document.addEventListener('DOMContentLoaded', () => {
         elDateStart.addEventListener('change', onCustomDateChange);
         elDateEnd.addEventListener('change', onCustomDateChange);
 
-        // Botão Limpar Filtros
         document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
             estadoApp.redecSelecionada = 'TODAS';
             estadoApp.municipioSelecionado = 'TODOS';
+            estadoApp.eventoSelecionado = 'TODOS';
             estadoApp.termoBusca = '';
             elSelectRedec.value = 'TODAS';
             popularSelectMunicipios('TODAS');
+            elSelectEvento.value = 'TODOS';
             elInputBusca.value = '';
             definirAtalhoPeriodo('tudo');
             MapaController.enquadrarEstadoRJ(true);
         });
 
-        // Botão Enquadrar RJ no Mapa
         document.getElementById('btn-reset-map').addEventListener('click', () => {
             MapaController.enquadrarEstadoRJ(true);
         });
 
-        // Botão Sincronizar Manual
-        elBtnSync.addEventListener('click', () => {
-            sincronizarComAPI(false);
-        });
+        elBtnSync.addEventListener('click', () => { sincronizarComAPI(false); });
 
-        // Paginação
         document.getElementById('btn-prev-page').addEventListener('click', () => {
-            if (estadoApp.paginaAtual > 1) {
-                estadoApp.paginaAtual--;
-                atualizarTabela();
-            }
+            if (estadoApp.paginaAtual > 1) { estadoApp.paginaAtual--; atualizarTabela(); }
         });
 
         document.getElementById('btn-next-page').addEventListener('click', () => {
