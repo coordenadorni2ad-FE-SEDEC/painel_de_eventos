@@ -210,8 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const eventosSet = new Set();
 
         baseModulo.forEach(item => {
-            if (item.evento && item.evento.trim() !== '') {
-                eventosSet.add(item.evento.trim());
+            if (item.tipoPuro && item.tipoPuro.trim() !== '' && item.tipoPuro !== 'Outros') {
+                eventosSet.add(item.tipoPuro.trim());
             }
         });
 
@@ -269,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (estadoApp.redecSelecionada !== 'TODAS' && item.redec !== estadoApp.redecSelecionada) return false;
             if (estadoApp.municipioSelecionado !== 'TODOS' && item.municipio !== estadoApp.municipioSelecionado) return false;
-            if (estadoApp.eventoSelecionado !== 'TODOS' && item.evento.trim() !== estadoApp.eventoSelecionado) return false;
+            if (estadoApp.eventoSelecionado !== 'TODOS' && item.tipoPuro.trim() !== estadoApp.eventoSelecionado) return false;
 
             if (buscaNorm) {
                 const textoLinha = DataProcessor.normalizarChave(
@@ -312,7 +312,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         lista.forEach(item => {
             if (item.municipio && item.municipio !== 'Não Informado') setMunicipios.add(item.municipio);
-            if (item.redec && item.redec !== 'NÃO IDENTIFICADA') contagemRedec[item.redec] = (contagemRedec[item.redec] || 0) + 1;
+            // Conta apenas REDECs oficiais válidas (REDEC 1 até REDEC 11)
+            if (item.redec && item.redec.startsWith('REDEC ')) {
+                contagemRedec[item.redec] = (contagemRedec[item.redec] || 0) + 1;
+            }
         });
 
         let topRedecNome = '-';
@@ -327,7 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('kpi-total').textContent = lista.length.toLocaleString('pt-BR');
         document.getElementById('kpi-modulo-nome').textContent = `Módulo: ${estadoApp.moduloAtivo}`;
         document.getElementById('kpi-municipios').textContent = setMunicipios.size;
-        document.getElementById('kpi-redecs').textContent = Object.keys(contagemRedec).length;
+        // Limita estritamente a contagem a no máximo 11 regionais
+        document.getElementById('kpi-redecs').textContent = Math.min(11, Object.keys(contagemRedec).length);
         document.getElementById('kpi-top-redec').textContent = topRedecNome;
         document.getElementById('kpi-top-redec-qtd').textContent = `${topRedecQtd} ocorrência(s)`;
     }
