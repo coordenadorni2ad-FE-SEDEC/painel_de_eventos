@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Painel Executivo de Defesa Civil — SEDEC-RJ</title>
 
-  <!-- CSS do Leaflet -->
+  <!-- Dependências do Leaflet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 
   <style>
@@ -124,7 +124,7 @@
     .dot.syncing { background: #f59e0b; }
     .dot.offline { background: #ef4444; }
 
-    /* CONTROLE DE PERÍODO */
+    /* CONTROLO DE PERÍODO */
     .period-highlight-bar {
       background: linear-gradient(180deg, #1e293b 0%, #151f30 100%);
       border: 1px solid var(--orange);
@@ -176,7 +176,7 @@
     }
     .btn-preset:hover, .btn-preset.active { background: var(--orange); color: #fff; border-color: var(--orange); }
 
-    /* LAYOUT DE 2 COLUNAS (FIXO, SEM ENCOLHIMENTO) */
+    /* LAYOUT EM 2 COLUNAS */
     .main-workspace {
       display: flex;
       gap: 16px;
@@ -184,14 +184,14 @@
       align-items: flex-start;
     }
     .col-left {
-      flex: 1 1 56%;
+      flex: 1 1 54%;
       min-width: 0;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
     .col-right {
-      flex: 1 1 44%;
+      flex: 1 1 46%;
       min-width: 440px;
       position: sticky;
       top: 12px;
@@ -248,7 +248,7 @@
     }
     .filter-group select:focus, .filter-group input:focus { border-color: var(--orange); }
 
-    /* PAINEL DO MAPA À DIREITA */
+    /* PAINEL DO MAPA */
     .map-panel {
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -278,15 +278,16 @@
     .btn-reset-map:hover { background: #334155; }
 
     #map {
-      height: 520px;
+      height: 540px;
       width: 100%;
       min-width: 100%;
       border-radius: 6px;
       background: #EEF1F4;
     }
 
+    /* TOOLTIP E POPUP */
     .mun-tooltip {
-      background: rgba(22, 36, 63, 0.92);
+      background: rgba(22, 36, 63, 0.94);
       color: #fff;
       border: none;
       border-radius: 4px;
@@ -313,21 +314,21 @@
       border-radius: 5px;
       padding: 8px 10px;
       font-family: sans-serif;
-      font-size: 11px;
+      font-size: 10.5px;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
       color: #16243F;
       margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
-    .map-legend-item { display: flex; align-items: center; gap: 5px; }
+    .map-legend-item { display: flex; align-items: center; gap: 4px; }
     .map-legend-swatch {
       width: 13px;
       height: 13px;
-      border-radius: 3px;
-      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 2px;
+      border: 1px solid rgba(0, 0, 0, 0.15);
       flex-shrink: 0;
     }
 
@@ -437,7 +438,7 @@
     </div>
   </div>
 
-  <!-- BARRA DE CONTROLE DE PERÍODO -->
+  <!-- BARRA DE CONTROLO DE PERÍODO -->
   <div class="period-highlight-bar" id="barraPeriodo">
     <div class="period-title-group">
       <h2>Filtro de Período</h2>
@@ -504,23 +505,26 @@
         
         <div id="map"></div>
 
-        <div class="map-legend">
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#2454A6;"></div> Na Regional</div>
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#D4DAE3;"></div> Fora da Seleção</div>
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#ea580c; border-radius:50%;"></div> Ponto de Ocorrência</div>
+        <div class="map-legend" id="legendContainer">
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#D4DAE3;"></div> Sem chamados</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#fed7aa;"></div> 1 - 5</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#fb923c;"></div> 6 - 20</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#ea580c;"></div> 21 - 50</div>
+          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#b91c1c;"></div> > 50</div>
+          <div class="map-legend-item">🔴 Ponto de Evento</div>
         </div>
       </div>
     </div>
 
   </div>
 
-  <!-- SCRIPT ÚNICO DO LEAFLET E MAPA.JS NO FINAL DO BODY -->
+  <!-- BIBLIOTECAS E MAPA CARREGADOS APENAS AQUI NO FIM DO BODY -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script src="mapa.js"></script>
 
   <script>
     /* =========================================================================
-       1. DICIONÁRIO OFICIAL DOS 92 MUNICÍPIOS DO RJ -> REDECs
+       1. MAPEAMENTO OFICIAL DOS 92 MUNICÍPIOS DO RJ -> REDECs
        ========================================================================= */
     const MAPA_REDECS_RJ = {
       "Angra dos Reis": "REDEC 4 - Costa Verde", "Aperibé": "REDEC 11 - Noroeste", "Araruama": "REDEC 9 - Baixada Litorânea",
@@ -573,7 +577,7 @@
     let pagina = 1;
     const porPagina = 8;
 
-    /* Variáveis do Mapa */
+    /* Variáveis do Mapa Leaflet */
     let mapInstance = null;
     let markersLayerGroup = null;
     let currentScopeBounds = null;
@@ -643,28 +647,54 @@
     }
 
     /* =========================================================================
-       2. LÓGICA DO MAPA (IDÊNTICA AO SEU OUTRO PROJETO FUNCIONAL)
+       2. LÓGICA DO MAPA COROPLÉTICO COM FOCO EM REDEC
        ========================================================================= */
-    function obterEstiloFeature(feature, escopoSet) {
+    function obterCorPorQuantidade(qtd) {
+      if (qtd > 50) return '#b91c1c'; // Vermelho intenso
+      if (qtd > 20) return '#ea580c'; // Laranja forte
+      if (qtd > 5)  return '#fb923c'; // Laranja médio
+      if (qtd > 0)  return '#fed7aa'; // Pêssego suave
+      return '#D4DAE3';               // Cinzento claro (sem ocorrências)
+    }
+
+    function obterEstiloFeature(feature, escopoSet, contagemMun) {
       const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
       const isNoEscopo = escopoSet.has(normalizarTexto(canonico));
+      const qtd = contagemMun[normalizarTexto(canonico)] || 0;
+      const isRedecEspecifica = (redecAtiva !== "ALL" && redecAtiva !== "TODAS");
 
-      if (isNoEscopo) {
+      if (isRedecEspecifica) {
+        // Se uma REDEC está selecionada:
+        if (isNoEscopo) {
+          // Municípios da REDEC: TOTALMENTE PREENCHIDOS E DESTACADOS
+          return {
+            fillColor: qtd > 0 ? obterCorPorQuantidade(qtd) : "#2454A6",
+            fillOpacity: 0.85,
+            color: "#ffffff",
+            weight: 2,
+            opacity: 1
+          };
+        } else {
+          // Restante do Estado: APENAS CONTORNO (sem preenchimento)
+          return {
+            fillColor: "transparent",
+            fillOpacity: 0,
+            color: "#64748B",
+            weight: 0.8,
+            dashArray: "2, 2",
+            opacity: 0.6
+          };
+        }
+      } else {
+        // Visão Geral (Todas as REDECs): MAPA COROPLÉTICO PREENCHIDO
         return {
-          fillColor: "#2454A6",
-          fillOpacity: 0.80,
+          fillColor: obterCorPorQuantidade(qtd),
+          fillOpacity: qtd > 0 ? 0.85 : 0.5,
           color: "#ffffff",
-          weight: 1.5,
+          weight: 1.2,
           opacity: 1
         };
       }
-      return {
-        fillColor: "#D4DAE3",
-        fillOpacity: 0.45,
-        color: "#B0B8C4",
-        weight: 0.8,
-        opacity: 1
-      };
     }
 
     function initMap() {
@@ -705,12 +735,19 @@
       atualizarMunicipiosEscopo();
       const ESCOPO_SET = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
 
+      // Contagem de ocorrências por município nos dados filtrados
+      const contagemMun = {};
+      filtrados.forEach(item => {
+        const cNome = getNomeCanonicoMunicipio(item.m);
+        const norm = normalizarTexto(cNome);
+        if (norm) contagemMun[norm] = (contagemMun[norm] || 0) + (item.o || 1);
+      });
+
       if (window._geojsonLayer) {
         mapInstance.removeLayer(window._geojsonLayer);
       }
       markersLayerGroup.clearLayers();
 
-      // Recupera com segurança o objeto GEOJSON do mapa.js
       let dadosGeoJson = null;
       try {
         if (typeof GEOJSON !== "undefined") dadosGeoJson = GEOJSON;
@@ -725,8 +762,9 @@
           const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
           const isNoEscopo = ESCOPO_SET.has(normalizarTexto(canonico));
           const redecNome = getRedecDoMunicipio(canonico);
+          const qtd = contagemMun[normalizarTexto(canonico)] || 0;
 
-          layer.bindTooltip(`<b>${canonico}</b><br><span style="font-size:10px;opacity:.85;">${redecNome}</span>`, {
+          layer.bindTooltip(`<b>${canonico}</b><br><span style="font-size:10px;opacity:.85;">${redecNome}</span><br><b>${qtd}</b> ocorrência(s)`, {
             sticky: true,
             direction: "top",
             offset: [0, -10],
@@ -736,20 +774,19 @@
 
           layer.on({
             mouseover(e) {
-              e.target.setStyle(isNoEscopo ? { fillOpacity: 1, weight: 2.5, color: "#16243F" } : { fillOpacity: 0.75, weight: 1.5, color: "#3A4D6B" });
+              e.target.setStyle({ fillOpacity: 0.95, weight: 2.5, color: "#16243F" });
             },
             mouseout(e) {
-              e.target.setStyle(obterEstiloFeature(e.target.feature, ESCOPO_SET));
+              window._geojsonLayer.resetStyle(e.target);
               e.target.closeTooltip();
             },
             click(e) {
               e.target.closeTooltip();
-              const contagemMun = filtrados.filter(i => normalizarTexto(i.m) === normalizarTexto(canonico)).length;
               const popupContent = `
                 <div class="popup-nome">${canonico}</div>
                 <div class="popup-redec">${redecNome}</div>
                 <div style="font-size:12px;color:#16243F;margin-top:4px;">
-                  <strong>${contagemMun}</strong> ocorrência(s) registrada(s).
+                  <strong>${qtd}</strong> ocorrência(s) registrada(s) no filtro atual.
                 </div>
               `;
               e.target.bindPopup(popupContent).openPopup();
@@ -759,7 +796,7 @@
         }
 
         window._geojsonLayer = L.geoJSON(dadosGeoJson, {
-          style: (feat) => obterEstiloFeature(feat, ESCOPO_SET),
+          style: (feat) => obterEstiloFeature(feat, ESCOPO_SET, contagemMun),
           onEachFeature
         }).addTo(mapInstance);
 
@@ -771,7 +808,7 @@
           const bounds = L.featureGroup(camadasEscopo).getBounds();
           if (bounds.isValid()) {
             currentScopeBounds = bounds;
-            mapInstance.fitBounds(bounds, { padding: [14, 14], animate: true });
+            mapInstance.fitBounds(bounds, { padding: [18, 18], animate: true });
           }
         } else {
           currentScopeBounds = window._geojsonLayer.getBounds();
@@ -779,7 +816,7 @@
         }
       }
 
-      // Marcadores de ocorrências
+      // Marcadores pontuais com coordenadas (se estiverem dentro do escopo)
       const pontosComCoords = filtrados.filter(i => i.tem_coords);
       pontosComCoords.slice(0, 300).forEach(pt => {
         const marker = L.circleMarker([pt.lat, pt.lon], {
@@ -804,7 +841,7 @@
 
       setTimeout(() => {
         if (mapInstance) mapInstance.invalidateSize({ animate: false });
-      }, 80);
+      }, 60);
     }
 
     /* =========================================================================
