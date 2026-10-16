@@ -17,8 +17,11 @@ window.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("btnResetMap").addEventListener("click", () => {
     redecAtiva = "ALL";
-    const sel = document.getElementById("filtroRedec");
-    if (sel) sel.value = "TODAS";
+    municipioAtivo = "TODOS";
+    const selR = document.getElementById("filtroRedec");
+    const selM = document.getElementById("filtroMun");
+    if (selR) selR.value = "TODAS";
+    if (selM) selM.value = "TODOS";
     filtrar();
   });
 
@@ -44,6 +47,7 @@ function renderizarBotoesNavegacao() {
       btn.classList.add("active");
       abaAtiva = nomeAba;
       redecAtiva = "ALL";
+      municipioAtivo = "TODOS";
       carregarModulo(nomeAba);
     });
     container.appendChild(btn);
@@ -228,8 +232,7 @@ function popularDropdownsModulo(tipo) {
     redecs.forEach(r => selRedec.innerHTML += `<option value="${r}">${r}</option>`);
   }
   if (selMun) {
-    const muns = Object.keys(MAPA_REDECS_RJ).sort((a,b) => a.localeCompare(b, "pt-BR"));
-    muns.forEach(m => selMun.innerHTML += `<option value="${m}">${m}</option>`);
+    atualizarDropdownMunicipios();
   }
   if (selTipo && tipo === "sisgeo") {
     const tipos = [...new Set(todosRegistros.map(r => r.tipo).filter(Boolean))].sort();
@@ -237,17 +240,45 @@ function popularDropdownsModulo(tipo) {
   }
 }
 
+function atualizarDropdownMunicipios() {
+  const selMun = document.getElementById("filtroMun");
+  if (!selMun) return;
+  const valAtual = selMun.value;
+  selMun.innerHTML = '<option value="TODOS">Todos os Municípios</option>';
+
+  let muns = Object.keys(MAPA_REDECS_RJ);
+  if (redecAtiva !== "ALL" && redecAtiva !== "TODAS") {
+    muns = muns.filter(m => normalizarTexto(MAPA_REDECS_RJ[m]) === normalizarTexto(redecAtiva));
+  }
+  muns.sort((a,b) => a.localeCompare(b, "pt-BR"));
+  muns.forEach(m => selMun.innerHTML += `<option value="${m}">${m}</option>`);
+  if (muns.includes(valAtual)) selMun.value = valAtual;
+}
+
 function anexarEventosModulo() {
-  const inputs = document.querySelectorAll("#containerFiltros select, #containerFiltros input");
-  inputs.forEach(el => {
-    el.addEventListener("change", () => {
-      if (el.id === "filtroRedec") {
-        redecAtiva = el.value;
-      }
+  const selR = document.getElementById("filtroRedec");
+  const selM = document.getElementById("filtroMun");
+  const selT = document.getElementById("filtroTipo");
+  const txt = document.getElementById("filtroTexto");
+
+  if (selR) {
+    selR.addEventListener("change", (e) => {
+      redecAtiva = e.target.value;
+      municipioAtivo = "TODOS";
+      atualizarDropdownMunicipios();
       filtrar();
     });
-    el.addEventListener("input", filtrar);
-  });
+  }
+
+  if (selM) {
+    selM.addEventListener("change", (e) => {
+      municipioAtivo = e.target.value;
+      filtrar();
+    });
+  }
+
+  if (selT) selT.addEventListener("change", filtrar);
+  if (txt) txt.addEventListener("input", filtrar);
 }
 
 function definirLimitesDatasIniciais() {
@@ -258,7 +289,8 @@ function definirLimitesDatasIniciais() {
   const dFim = document.getElementById("dataFim");
   dIni.min = datas[0]; dIni.max = datas[datas.length - 1];
   dFim.min = datas[0]; dFim.max = datas[datas.length - 1];
-  dIni.value = datas[0]; dFim.value = datas[datas.length - 1];
+  dIni.value = datas[0];
+  dFim.value = datas[datas.length - 1];
 }
 
 function filtrar() {
@@ -268,8 +300,6 @@ function filtrar() {
   const dtIni = document.getElementById("dataInicio").value;
   const dtFim = document.getElementById("dataFim").value;
   const fTexto = normalizarTexto(document.getElementById("filtroTexto")?.value);
-  const fRedec = document.getElementById("filtroRedec")?.value;
-  const fMun = document.getElementById("filtroMun")?.value;
   const fTipo = document.getElementById("filtroTipo")?.value;
 
   filtrados = todosRegistros.filter(item => {
@@ -278,11 +308,11 @@ function filtrar() {
       if (dtFim && item.d_iso > dtFim) return false;
     }
 
-    if (fRedec && fRedec !== "TODAS") {
-      if (normalizarTexto(item.r) !== normalizarTexto(fRedec)) return false;
+    if (redecAtiva && redecAtiva !== "ALL" && redecAtiva !== "TODAS") {
+      if (normalizarTexto(item.r) !== normalizarTexto(redecAtiva)) return false;
     }
-    if (fMun && fMun !== "TODOS") {
-      if (normalizarTexto(item.m) !== normalizarTexto(fMun)) return false;
+    if (municipioAtivo && municipioAtivo !== "TODOS") {
+      if (normalizarTexto(item.m) !== normalizarTexto(municipioAtivo)) return false;
     }
 
     if (tipo === "sisgeo") {
