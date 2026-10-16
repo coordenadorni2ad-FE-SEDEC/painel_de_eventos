@@ -1,470 +1,543 @@
-/* =========================================================================
-   APLICAÇÃO: CONTROLE DE ABAS, FILTROS, KPIS E TABELA
-   ========================================================================= */
+/**
+ * js/app.js
+ * Orquestrador principal do Painel SEDEC-RJ / REDECs:
+ * - Cache inteligente (localStorage + verificação em segundo plano a cada 5 min)
+ * - Navegação entre abas (módulos operacionais)
+ * - Filtro de período (Hoje, 7D, 30D, Mês Atual, Tudo e intervalo personalizado)
+ * - Filtros dependentes (REDEC <-> Município + Busca textual)
+ * - Atualização sincronizada de KPIs, Gráfico por REDEC, Tabela paginada e Mapa Leaflet
+ */
 
-let abaAtiva = "SISGEO";
-let todosRegistros = [];
-let filtrados = [];
-let pagina = 1;
-const porPagina = 8;
+document.addEventListener('DOMContentLoaded', () => {
+    const estadoApp = {
+        bancoPorModulo: {},
+        moduloAtivo: CONFIG.MODULOS_VISIVEIS[0].id,
+        periodoAtivo: 'tudo',
+        dataInicioISO: '',
+        dataFimISO: '',
+        redecSelecionada: 'TODAS',
+        municipioSelecionado: 'TODOS',
+        termoBusca: '',
+        registrosFiltrados: [],
+        paginaAtual: 1
+    };
 
-window.addEventListener("DOMContentLoaded", () => {
-  atualizarMunicipiosEscopo();
-  renderizarBotoesNavegacao();
-  configurarEventosGerais();
-  initMap();
-  carregarModulo(abaAtiva);
+    // Referências de DOM
+    const elTabs = document.getElementById('module-tabs');
+    const elSelectRedec = document.getElementById('select-redec');
+    const elSelectMunicipio = document.getElementById('select-municipio');
+    const elInputBusca = document.getElementById('input-busca');
+    const elDateStart = document.getElementById('date-start');
+    const elDateEnd = document.getElementById('date-end');
+    const elBtnSync = document.getElementById('btn-sync');
+    const elStatusDot = document.getElementById('status-indicator');
+    const elLastSyncText = document.getElementById('last-sync-text');
+    const elMapFilterStatus = document.getElementById('map-filter-status');
 
-  document.getElementById("btnResetMap").addEventListener("click", () => {
-    redecAtiva = "ALL";
-    municipioAtivo = "TODOS";
-    const selR = document.getElementById("filtroRedec");
-    const selM = document.getElementById("filtroMun");
-    if (selR) selR.value = "TODAS";
-    if (selM) selM.value = "TODOS";
-    filtrar();
-  });
+    // 1. Inicializa o Mapa Leaflet
+    MapaController.inicializar('map');
 
-  setInterval(() => {
-    sincronizarAba(abaAtiva, true);
-  }, INTERVALO_AUTO_SYNC_MS);
+    // 2. Popula Select de REDECs
+    popularSelectRedecs();
+    popularSelectMunicipios('TODAS');
+
+    // 3. Registra Eventos de Interface
+    registrarEventosUI();
+
+    // 4. Carrega Dados (Cache Local imediato + Sincronização com API)
+    carregarDadosIniciais();
+
+    // 5. Verificação silenciosa a cada 5 minutos
+    setInterval(() => {
+        sincronizarComAPI(true);
+    }, CONFIG.CACHE_TTL_MS);
+
+    // =========================================================================
+    // FUNÇÕES DE DADOS E CACHE
+    // =========================================================================
+    function carregarDadosIniciais() {
+        try {
+            const cacheSalvo = localStorage.getItem(CONFIG.CACHE_KEY);
+            if (cacheSalvo) {
+                const parsed = JSON.parse(cacheSalvo);
+                if (parsed && parsed.dados) {
+                    estadoApp.bancoPorModulo = parsed.dados;
+                    atualizarStatusSync('online', `Cache (${ parsed.horario || 'recente' })`);
+                    renderizarAbas();
+                    aplicarFiltros(false);
+                }
+            }
+        } catch (err) {
+            console.warn('Falha ao ler cache local:', err);
+        }
+
+        sincronizarComAPI(false);
+    }
+
+    async function sincronizarComAPI(silencioso = false) {
+        if (!silencioso) {
+            atualizarStatusSync('syncing', 'Sincronizando...');
+        }
+
+        try {
+            const resposta = await fetch(CONFIG.API_URL, { cache: 'no-store' });
+            if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+
+            const json = await resposta.json();
+            const processado = DataProcessor.processarRespostaAPI(json);
+
+            estadoApp.bancoPorModulo = processado;
+
+            const agora = new Date();
+            const horarioFormatado = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            try {
+                localStorage.setItem(CONFIG.CACHE_KEY, JSON.stringify({
+                    horario: horarioFormatado,
+                    timestamp: agora.getTime(),
+                    dados: processado
+                }));
+            } catch (e) {
+                console.warn('Aviso: limite de localStorage atingido.');
+            }
+
+            atualizarStatusSync('online', `Atualizado às ${horarioFormatado}`);
+            renderizarAbas();
+            aplicarFiltros(false);
+        } catch (erro) {
+            console.error('Erro ao sincronizar com a API:', erro);
+            atualizarStatusSync('error', 'Modo Offline (Cache)');
+            renderizarAbas();
+            aplicarFiltros(false);
+        }
+    }
+
+    function atualizarStatusSync(estado, texto) {
+        if (elStatusDot) {
+            elStatusDot.className = `status-dot ${estado}`;
+        }
+        if (elLastSyncText) {
+            elLastSyncText.textContent = texto;
+        }
+    }
+
+    // =========================================================================
+    // NAVEGAÇÃO POR ABAS E PERÍODO
+    // =========================================================================
+    function renderizarAbas() {
+        if (!elTabs) return;
+        elTabs.innerHTML = '';
+
+        CONFIG.MODULOS_VISIVEIS.forEach(mod => {
+            const lista = estadoApp.bancoPorModulo[mod.id] || [];
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = `tab-btn ${estadoApp.moduloAtivo === mod.id ? 'active' : ''}`;
+            btn.innerHTML = `
+                <span>${mod.rotulo}</span>
+                <span class="tab-count">${lista.length}</span>
+            `;
+            btn.addEventListener('click', () => {
+                estadoApp.moduloAtivo = mod.id;
+                estadoApp.paginaAtual = 1;
+                renderizarAbas();
+                aplicarFiltros(false);
+            });
+            elTabs.appendChild(btn);
+        });
+    }
+
+    function definirAtalhoPeriodo(codigoPeriodo) {
+        estadoApp.periodoAtivo = codigoPeriodo;
+        const hoje = new Date();
+        const formatarISO = (dt) => {
+            const a = dt.getFullYear();
+            const m = String(dt.getMonth() + 1).padStart(2, '0');
+            const d = String(dt.getDate()).padStart(2, '0');
+            return `${a}-${m}-${d}`;
+        };
+
+        if (codigoPeriodo === 'tudo') {
+            estadoApp.dataInicioISO = '';
+            estadoApp.dataFimISO = '';
+        } else if (codigoPeriodo === 'hoje') {
+            const iso = formatarISO(hoje);
+            estadoApp.dataInicioISO = iso;
+            estadoApp.dataFimISO = iso;
+        } else if (codigoPeriodo === '7d') {
+            const inicio = new Date(hoje);
+            inicio.setDate(hoje.getDate() - 6);
+            estadoApp.dataInicioISO = formatarISO(inicio);
+            estadoApp.dataFimISO = formatarISO(hoje);
+        } else if (codigoPeriodo === '30d') {
+            const inicio = new Date(hoje);
+            inicio.setDate(hoje.getDate() - 29);
+            estadoApp.dataInicioISO = formatarISO(inicio);
+            estadoApp.dataFimISO = formatarISO(hoje);
+        } else if (codigoPeriodo === 'mes') {
+            const inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+            estadoApp.dataInicioISO = formatarISO(inicio);
+            estadoApp.dataFimISO = formatarISO(hoje);
+        }
+
+        if (elDateStart) elDateStart.value = estadoApp.dataInicioISO;
+        if (elDateEnd) elDateEnd.value = estadoApp.dataFimISO;
+
+        document.querySelectorAll('.btn-period').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.period === codigoPeriodo);
+        });
+
+        estadoApp.paginaAtual = 1;
+        aplicarFiltros(false);
+    }
+
+    // =========================================================================
+    // FILTROS DEPENDENTES (REDEC <-> MUNICÍPIO)
+    // =========================================================================
+    function popularSelectRedecs() {
+        if (!elSelectRedec) return;
+        elSelectRedec.innerHTML = '<option value="TODAS">Todas as REDECs (11)</option>';
+        LISTA_REDECS_RJ.forEach(redec => {
+            const opt = document.createElement('option');
+            opt.value = redec;
+            opt.textContent = redec;
+            elSelectRedec.appendChild(opt);
+        });
+    }
+
+    function popularSelectMunicipios(redecFiltro = 'TODAS') {
+        if (!elSelectMunicipio) return;
+        const valorAnterior = elSelectMunicipio.value;
+        elSelectMunicipio.innerHTML = '<option value="TODOS">Todos os Municípios</option>';
+
+        const municipios = Object.entries(MAPA_REDECS_RJ)
+            .filter(([, redec]) => redecFiltro === 'TODAS' || redec === redecFiltro)
+            .map(([mun]) => mun)
+            .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+        municipios.forEach(mun => {
+            const opt = document.createElement('option');
+            opt.value = mun;
+            opt.textContent = mun;
+            elSelectMunicipio.appendChild(opt);
+        });
+
+        if (municipios.includes(valorAnterior)) {
+            elSelectMunicipio.value = valorAnterior;
+        } else {
+            elSelectMunicipio.value = 'TODOS';
+            estadoApp.municipioSelecionado = 'TODOS';
+        }
+    }
+
+    // Permite clicar em um polígono no mapa para filtrar o município
+    window.selecionarMunicipioPeloMapa = (nomeMunicipio) => {
+        const info = DataProcessor.resolverMunicipioERedec(nomeMunicipio, '');
+        if (!info || !info.municipio) return;
+
+        // Se clicar no mesmo município já filtrado, limpa o filtro e volta para visão geral
+        if (estadoApp.municipioSelecionado === info.municipio) {
+            estadoApp.redecSelecionada = 'TODAS';
+            estadoApp.municipioSelecionado = 'TODOS';
+            elSelectRedec.value = 'TODAS';
+            popularSelectMunicipios('TODAS');
+            aplicarFiltros(true);
+            return;
+        }
+
+        estadoApp.redecSelecionada = info.redec;
+        elSelectRedec.value = info.redec;
+        popularSelectMunicipios(info.redec);
+
+        estadoApp.municipioSelecionado = info.municipio;
+        elSelectMunicipio.value = info.municipio;
+        estadoApp.paginaAtual = 1;
+
+        aplicarFiltros(true);
+    };
+
+    // =========================================================================
+    // APLICAÇÃO DOS FILTROS E ATUALIZAÇÃO DE COMPONENTES
+    // =========================================================================
+    function aplicarFiltros(moverCameraMapa = true) {
+        const baseModulo = estadoApp.bancoPorModulo[estadoApp.moduloAtivo] || [];
+
+        const tsInicio = estadoApp.dataInicioISO ? new Date(`${estadoApp.dataInicioISO}T00:00:00`).getTime() : null;
+        const tsFim = estadoApp.dataFimISO ? new Date(`${estadoApp.dataFimISO}T23:59:59`).getTime() : null;
+        const buscaNorm = DataProcessor.normalizarChave(estadoApp.termoBusca);
+
+        estadoApp.registrosFiltrados = baseModulo.filter(item => {
+            // 1. Filtro de Período
+            if (tsInicio && (!item.timestamp || item.timestamp < tsInicio)) return false;
+            if (tsFim && (!item.timestamp || item.timestamp > tsFim)) return false;
+
+            // 2. Filtro de REDEC
+            if (estadoApp.redecSelecionada !== 'TODAS' && item.redec !== estadoApp.redecSelecionada) {
+                return false;
+            }
+
+            // 3. Filtro de Município
+            if (estadoApp.municipioSelecionado !== 'TODOS' && item.municipio !== estadoApp.municipioSelecionado) {
+                return false;
+            }
+
+            // 4. Filtro de Busca Rápida
+            if (buscaNorm) {
+                const textoLinha = DataProcessor.normalizarChave(
+                    `${item.municipio} ${item.redec} ${item.evento} ${item.data} ${JSON.stringify(item._raw)}`
+                );
+                if (!textoLinha.includes(buscaNorm)) return false;
+            }
+
+            return true;
+        });
+
+        atualizarKPIs();
+        atualizarGraficoRedecs();
+        atualizarTabela();
+        atualizarStatusBarraMapa();
+
+        MapaController.atualizarMapa({
+            registrosFiltrados: estadoApp.registrosFiltrados,
+            redec: estadoApp.redecSelecionada,
+            municipio: estadoApp.municipioSelecionado,
+            moverCamera: moverCameraMapa
+        });
+    }
+
+    function atualizarStatusBarraMapa() {
+        if (!elMapFilterStatus) return;
+        if (estadoApp.municipioSelecionado !== 'TODOS') {
+            elMapFilterStatus.textContent = `Foco Municipal: ${estadoApp.municipioSelecionado} (${estadoApp.redecSelecionada})`;
+        } else if (estadoApp.redecSelecionada !== 'TODAS') {
+            elMapFilterStatus.textContent = `Visão Regional: ${estadoApp.redecSelecionada} (Demais municípios em contorno)`;
+        } else {
+            elMapFilterStatus.textContent = 'Visão Estadual: Todas as REDECs (92 Municípios)';
+        }
+    }
+
+    function atualizarKPIs() {
+        const lista = estadoApp.registrosFiltrados;
+        const setMunicipios = new Set();
+        const contagemRedec = {};
+
+        lista.forEach(item => {
+            if (item.municipio && item.municipio !== 'Não Informado') {
+                setMunicipios.add(item.municipio);
+            }
+            if (item.redec && item.redec !== 'NÃO IDENTIFICADA') {
+                contagemRedec[item.redec] = (contagemRedec[item.redec] || 0) + 1;
+            }
+        });
+
+        let topRedecNome = '-';
+        let topRedecQtd = 0;
+        for (const [redec, qtd] of Object.entries(contagemRedec)) {
+            if (qtd > topRedecQtd) {
+                topRedecQtd = qtd;
+                topRedecNome = redec.replace('REDEC ', '');
+            }
+        }
+
+        document.getElementById('kpi-total').textContent = lista.length.toLocaleString('pt-BR');
+        document.getElementById('kpi-modulo-nome').textContent = `Módulo: ${estadoApp.moduloAtivo}`;
+        document.getElementById('kpi-municipios').textContent = setMunicipios.size;
+        document.getElementById('kpi-redecs').textContent = Object.keys(contagemRedec).length;
+        document.getElementById('kpi-top-redec').textContent = topRedecNome;
+        document.getElementById('kpi-top-redec-qtd').textContent = `${topRedecQtd} ocorrência(s)`;
+    }
+
+    function atualizarGraficoRedecs() {
+        const container = document.getElementById('redec-bars-container');
+        if (!container) return;
+
+        const contagem = {};
+        LISTA_REDECS_RJ.forEach(r => { contagem[r] = 0; });
+
+        estadoApp.registrosFiltrados.forEach(item => {
+            if (contagem[item.redec] !== undefined) {
+                contagem[item.redec]++;
+            }
+        });
+
+        const ranking = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
+        const maiorValor = Math.max(1, ...ranking.map(([, v]) => v));
+
+        container.innerHTML = '';
+        ranking.forEach(([redec, qtd]) => {
+            const pct = Math.round((qtd / maiorValor) * 100);
+            const row = document.createElement('div');
+            row.className = `redec-bar-row ${estadoApp.redecSelecionada === redec ? 'selected' : ''}`;
+            row.innerHTML = `
+                <span class="redec-bar-label" title="${redec}">${redec.replace('REDEC ', '')}</span>
+                <div class="redec-bar-track">
+                    <div class="redec-bar-fill" style="width: ${pct}%"></div>
+                </div>
+                <span class="redec-bar-value">${qtd}</span>
+            `;
+
+            row.addEventListener('click', () => {
+                const novaRedec = (estadoApp.redecSelecionada === redec) ? 'TODAS' : redec;
+                estadoApp.redecSelecionada = novaRedec;
+                estadoApp.municipioSelecionado = 'TODOS';
+                elSelectRedec.value = novaRedec;
+                popularSelectMunicipios(novaRedec);
+                estadoApp.paginaAtual = 1;
+                aplicarFiltros(true);
+            });
+
+            container.appendChild(row);
+        });
+    }
+
+    function atualizarTabela() {
+        const thead = document.getElementById('table-head');
+        const tbody = document.getElementById('table-body');
+        const counter = document.getElementById('table-counter');
+        const pageInfo = document.getElementById('page-info');
+        const btnPrev = document.getElementById('btn-prev-page');
+        const btnNext = document.getElementById('btn-next-page');
+
+        const total = estadoApp.registrosFiltrados.length;
+        counter.textContent = `${total} registro(s) encontrado(s)`;
+
+        thead.innerHTML = `
+            <tr>
+                <th>Data</th>
+                <th>Município</th>
+                <th>REDEC</th>
+                <th>Descrição / Evento</th>
+            </tr>
+        `;
+
+        const totalPaginas = Math.max(1, Math.ceil(total / CONFIG.ITENS_POR_PAGINA));
+        if (estadoApp.paginaAtual > totalPaginas) estadoApp.paginaAtual = totalPaginas;
+
+        const inicio = (estadoApp.paginaAtual - 1) * CONFIG.ITENS_POR_PAGINA;
+        const fim = inicio + CONFIG.ITENS_POR_PAGINA;
+        const paginaItens = estadoApp.registrosFiltrados.slice(inicio, fim);
+
+        tbody.innerHTML = '';
+
+        if (paginaItens.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align:center; padding:22px; color:#64748b;">
+                        Nenhum registro encontrado para os filtros selecionados.
+                    </td>
+                </tr>
+            `;
+        } else {
+            paginaItens.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.data || '-'}</td>
+                    <td><strong>${item.municipio}</strong></td>
+                    <td>${item.redec.replace('REDEC ', '')}</td>
+                    <td title="${item.evento}">${item.evento}</td>
+                `;
+                tr.addEventListener('click', () => {
+                    if (item.municipio && item.municipio !== 'Não Informado') {
+                        window.selecionarMunicipioPeloMapa(item.municipio);
+                    }
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        pageInfo.textContent = `Página ${estadoApp.paginaAtual} de ${totalPaginas}`;
+        btnPrev.disabled = estadoApp.paginaAtual <= 1;
+        btnNext.disabled = estadoApp.paginaAtual >= totalPaginas;
+    }
+
+    // =========================================================================
+    // EVENTOS DE INTERAÇÃO DO USUÁRIO
+    // =========================================================================
+    function registrarEventosUI() {
+        // Mudança de REDEC
+        elSelectRedec.addEventListener('change', (e) => {
+            estadoApp.redecSelecionada = e.target.value;
+            estadoApp.municipioSelecionado = 'TODOS';
+            popularSelectMunicipios(estadoApp.redecSelecionada);
+            estadoApp.paginaAtual = 1;
+            aplicarFiltros(true);
+        });
+
+        // Mudança de Município
+        elSelectMunicipio.addEventListener('change', (e) => {
+            estadoApp.municipioSelecionado = e.target.value;
+            if (estadoApp.municipioSelecionado !== 'TODOS') {
+                const info = DataProcessor.resolverMunicipioERedec(estadoApp.municipioSelecionado, '');
+                if (info.redec && estadoApp.redecSelecionada === 'TODAS') {
+                    estadoApp.redecSelecionada = info.redec;
+                    elSelectRedec.value = info.redec;
+                    popularSelectMunicipios(info.redec);
+                    elSelectMunicipio.value = info.municipio;
+                }
+            }
+            estadoApp.paginaAtual = 1;
+            aplicarFiltros(true);
+        });
+
+        // Busca textual
+        elInputBusca.addEventListener('input', (e) => {
+            estadoApp.termoBusca = e.target.value;
+            estadoApp.paginaAtual = 1;
+            aplicarFiltros(false);
+        });
+
+        // Botões rápidos de período
+        document.querySelectorAll('.btn-period').forEach(btn => {
+            btn.addEventListener('click', () => {
+                definirAtalhoPeriodo(btn.dataset.period);
+            });
+        });
+
+        // Datas personalizadas
+        const onCustomDateChange = () => {
+            estadoApp.periodoAtivo = 'custom';
+            estadoApp.dataInicioISO = elDateStart.value;
+            estadoApp.dataFimISO = elDateEnd.value;
+            document.querySelectorAll('.btn-period').forEach(b => b.classList.remove('active'));
+            estadoApp.paginaAtual = 1;
+            aplicarFiltros(false);
+        };
+        elDateStart.addEventListener('change', onCustomDateChange);
+        elDateEnd.addEventListener('change', onCustomDateChange);
+
+        // Botão Limpar Filtros
+        document.getElementById('btn-limpar-filtros').addEventListener('click', () => {
+            estadoApp.redecSelecionada = 'TODAS';
+            estadoApp.municipioSelecionado = 'TODOS';
+            estadoApp.termoBusca = '';
+            elSelectRedec.value = 'TODAS';
+            popularSelectMunicipios('TODAS');
+            elInputBusca.value = '';
+            definirAtalhoPeriodo('tudo');
+            MapaController.enquadrarEstadoRJ(true);
+        });
+
+        // Botão Enquadrar RJ no Mapa
+        document.getElementById('btn-reset-map').addEventListener('click', () => {
+            MapaController.enquadrarEstadoRJ(true);
+        });
+
+        // Botão Sincronizar Manual
+        elBtnSync.addEventListener('click', () => {
+            sincronizarComAPI(false);
+        });
+
+        // Paginação
+        document.getElementById('btn-prev-page').addEventListener('click', () => {
+            if (estadoApp.paginaAtual > 1) {
+                estadoApp.paginaAtual--;
+                atualizarTabela();
+            }
+        });
+
+        document.getElementById('btn-next-page').addEventListener('click', () => {
+            estadoApp.paginaAtual++;
+            atualizarTabela();
+        });
+    }
 });
-
-function tratarErroLogo(img) {
-  img.parentElement.innerHTML = '<span style="font-size:24px;">🛡️</span>';
-}
-
-function renderizarBotoesNavegacao() {
-  const container = document.getElementById("containerNavTabs");
-  container.innerHTML = "";
-  Object.entries(CONFIG_MODULOS).forEach(([nomeAba, conf]) => {
-    if (!conf.ativo) return;
-    const btn = document.createElement("button");
-    btn.className = `tab-btn ${nomeAba === abaAtiva ? 'active' : ''}`;
-    btn.textContent = conf.rotulo || nomeAba;
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      abaAtiva = nomeAba;
-      redecAtiva = "ALL";
-      municipioAtivo = "TODOS";
-      carregarModulo(nomeAba);
-    });
-    container.appendChild(btn);
-  });
-}
-
-function configurarEventosGerais() {
-  document.getElementById("btnSync").addEventListener("click", () => sincronizarAba(abaAtiva, false));
-  
-  const dIni = document.getElementById("dataInicio");
-  const dFim = document.getElementById("dataFim");
-  dIni.addEventListener("input", () => { desmarcarPresets(); filtrar(); });
-  dFim.addEventListener("input", () => { desmarcarPresets(); filtrar(); });
-  dIni.addEventListener("change", () => { desmarcarPresets(); filtrar(); });
-  dFim.addEventListener("change", () => { desmarcarPresets(); filtrar(); });
-
-  document.querySelectorAll(".btn-preset").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".btn-preset").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      aplicarPresetPeriodo(btn.dataset.preset);
-    });
-  });
-
-  document.getElementById("btnAnt").addEventListener("click", () => {
-    if (pagina > 1) { pagina--; renderizarTabela(); }
-  });
-  document.getElementById("btnProx").addEventListener("click", () => {
-    const totalPags = Math.ceil(filtrados.length / porPagina) || 1;
-    if (pagina < totalPags) { pagina++; renderizarTabela(); }
-  });
-}
-
-function desmarcarPresets() {
-  document.querySelectorAll(".btn-preset").forEach(b => b.classList.remove("active"));
-}
-
-function aplicarPresetPeriodo(tipo) {
-  const dIni = document.getElementById("dataInicio");
-  const dFim = document.getElementById("dataFim");
-  const hoje = new Date();
-  const formatIso = (d) => d.toISOString().substring(0, 10);
-
-  if (tipo === "hoje") {
-    dIni.value = formatIso(hoje); dFim.value = formatIso(hoje);
-  } else if (tipo === "7d") {
-    const pass = new Date(); pass.setDate(hoje.getDate() - 7);
-    dIni.value = formatIso(pass); dFim.value = formatIso(hoje);
-  } else if (tipo === "30d") {
-    const pass = new Date(); pass.setDate(hoje.getDate() - 30);
-    dIni.value = formatIso(pass); dFim.value = formatIso(hoje);
-  } else if (tipo === "mes") {
-    const prim = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    dIni.value = formatIso(prim); dFim.value = formatIso(hoje);
-  } else if (tipo === "tudo") {
-    definirLimitesDatasIniciais();
-  }
-  filtrar();
-}
-
-function carregarModulo(nomeAba) {
-  const conf = CONFIG_MODULOS[nomeAba] || { tipo: "generico", temPeriodo: false };
-  
-  document.getElementById("barraPeriodo").style.display = conf.temPeriodo ? "flex" : "none";
-  document.getElementById("tabelaTituloAba").textContent = conf.rotulo || nomeAba;
-
-  const cacheData = localStorage.getItem("cache_aba_" + nomeAba);
-  const cacheTime = localStorage.getItem("time_aba_" + nomeAba);
-
-  if (cacheData) {
-    try {
-      todosRegistros = JSON.parse(cacheData);
-      atualizarStatusConexao("online", `${conf.rotulo || nomeAba} (Cache)`);
-      montarEstruturaModulo(conf.tipo);
-      if (conf.temPeriodo) definirLimitesDatasIniciais();
-      filtrar();
-    } catch (e) {
-      console.error("Erro no cache:", e);
-    }
-  }
-
-  sincronizarAba(nomeAba, false);
-}
-
-async function sincronizarAba(nomeAba, isBackground) {
-  const conf = CONFIG_MODULOS[nomeAba] || { tipo: "generico" };
-  const syncBtn = document.getElementById("btnSync");
-
-  if (!isBackground) {
-    syncBtn.classList.add("spinning");
-    atualizarStatusConexao("syncing", `Carregando ${conf.rotulo || nomeAba}...`);
-  }
-
-  try {
-    const urlFetch = `${CONFIG_URL_PLANILHA}?aba=${encodeURIComponent(nomeAba)}&t=${Date.now()}`;
-    const resp = await fetch(urlFetch);
-    const json = await resp.json();
-
-    if (json && json.data) {
-      const dadosPadronizados = json.data.map(r => padronizarLinha(r, conf.tipo));
-      todosRegistros = dadosPadronizados;
-      localStorage.setItem("cache_aba_" + nomeAba, JSON.stringify(dadosPadronizados));
-      localStorage.setItem("time_aba_" + nomeAba, new Date().toISOString());
-
-      montarEstruturaModulo(conf.tipo);
-      if (conf.temPeriodo) definirLimitesDatasIniciais();
-      filtrar();
-      atualizarStatusConexao("online", `${conf.rotulo || nomeAba} atualizado (${dadosPadronizados.length} registros)`);
-    }
-  } catch (err) {
-    console.error("Erro:", err);
-    atualizarStatusConexao(todosRegistros.length > 0 ? "syncing" : "offline", "Erro de Conexão");
-  } finally {
-    syncBtn.classList.remove("spinning");
-  }
-}
-
-function atualizarStatusConexao(tipo, texto) {
-  document.getElementById("statusDot").className = "dot " + tipo;
-  document.getElementById("statusText").textContent = texto;
-  document.getElementById("subHeaderStatus").textContent = texto;
-}
-
-function montarEstruturaModulo(tipo) {
-  const cKPIs = document.getElementById("containerKPIs");
-  const cFiltros = document.getElementById("containerFiltros");
-  const cGraficos = document.getElementById("containerGraficos");
-
-  cKPIs.innerHTML = ""; cFiltros.innerHTML = ""; cGraficos.innerHTML = "";
-
-  if (tipo === "sisgeo") {
-    cKPIs.innerHTML = `
-      <div class="kpi-card" style="border-left: 3px solid var(--orange);"><div class="kpi-label">Ocorrências SISGEO</div><div class="kpi-val" id="kpiSisTotal">-</div><div class="kpi-sub">Total de chamados</div></div>
-      <div class="kpi-card" style="border-left: 3px solid var(--blue);"><div class="kpi-label" style="color:var(--blue);">Municípios Afetados</div><div class="kpi-val" id="kpiSisMuns" style="color:var(--blue);">-</div><div class="kpi-sub">Cidades atendidas</div></div>
-      <div class="kpi-card" style="border-left: 3px solid var(--green);"><div class="kpi-label" style="color:var(--green);">Georreferenciados</div><div class="kpi-val" id="kpiSisCoords" style="color:var(--green);">-</div><div class="kpi-sub">Pontos no mapa</div></div>
-      <div class="kpi-card" style="border-left: 3px solid var(--purple);"><div class="kpi-label" style="color:var(--purple);">Epicentro Municipal</div><div class="kpi-val" id="kpiSisTopMun" style="font-size:15px; color:var(--purple);">-</div><div class="kpi-sub" id="kpiSisTopMunSub">Maior volume</div></div>
-    `;
-
-    cFiltros.innerHTML = `
-      <div class="filter-group"><label>Região (REDEC)</label><select id="filtroRedec"><option value="TODAS">Todas as REDECs</option></select></div>
-      <div class="filter-group"><label>Município</label><select id="filtroMun"><option value="TODOS">Todos os Municípios</option></select></div>
-      <div class="filter-group"><label>Tipo de Ocorrência</label><select id="filtroTipo"><option value="TODAS">Todos os Tipos</option></select></div>
-      <div class="filter-group"><label>Pesquisar</label><input type="text" id="filtroTexto" placeholder="Bairro ou endereço..."></div>
-    `;
-
-    cGraficos.innerHTML = `
-      <div class="chart-panel"><div class="chart-header"><div class="chart-title">Top Municípios SISGEO</div></div><div id="chartSisgeoMuns"></div></div>
-      <div class="chart-panel"><div class="chart-header"><div class="chart-title">Tipologias Principais</div></div><div id="chartSisgeoTipos"></div></div>
-    `;
-  } else if (tipo === "eventos") {
-    cKPIs.innerHTML = `
-      <div class="kpi-card" style="border-left: 3px solid var(--orange);"><div class="kpi-label">Ocorrências</div><div class="kpi-val" id="kpiOcorr">-</div><div class="kpi-sub">Total computado</div></div>
-      <div class="kpi-card" style="border-left: 3px solid var(--red);"><div class="kpi-label" style="color:var(--red);">Óbitos</div><div class="kpi-val" id="kpiObitos" style="color:var(--red);">-</div><div class="kpi-sub" id="kpiDesap">- desaparecidos</div></div>
-      <div class="kpi-card" style="border-left: 3px solid var(--amber);"><div class="kpi-label" style="color:var(--amber);">Desabrigados</div><div class="kpi-val" id="kpiDesab" style="color:var(--amber);">-</div><div class="kpi-sub">Acolhimento público</div></div>
-      <div class="kpi-card" style="border-left: 3px solid var(--blue);"><div class="kpi-label" style="color:var(--blue);">Desalojados</div><div class="kpi-val" id="kpiDesal" style="color:var(--blue);">-</div><div class="kpi-sub">Com parentes</div></div>
-    `;
-
-    cFiltros.innerHTML = `
-      <div class="filter-group"><label>REDEC</label><select id="filtroRedec"><option value="TODAS">Todas</option></select></div>
-      <div class="filter-group"><label>Município</label><select id="filtroMun"><option value="TODOS">Todos</option></select></div>
-      <div class="filter-group"><label>Tipologia</label><select id="filtroTipo"><option value="TODAS">Todas</option><option value="desliz">Deslizamento</option><option value="inund">Inundação</option><option value="arvore">Árvore</option><option value="desabam">Desabamento</option></select></div>
-      <div class="filter-group"><label>Busca Livre</label><input type="text" id="filtroTexto" placeholder="Pesquisar relato..."></div>
-    `;
-
-    cGraficos.innerHTML = `
-      <div class="chart-panel"><div class="chart-header"><div class="chart-title">Ocorrências por REDEC</div></div><div id="chartRedecBarras"></div></div>
-      <div class="chart-panel"><div class="chart-header"><div class="chart-title">Desalojados por REDEC</div></div><div id="chartDanosBarras"></div></div>
-    `;
-  }
-
-  popularDropdownsModulo(tipo);
-  anexarEventosModulo();
-}
-
-function popularDropdownsModulo(tipo) {
-  const selRedec = document.getElementById("filtroRedec");
-  const selMun = document.getElementById("filtroMun");
-  const selTipo = document.getElementById("filtroTipo");
-
-  if (selRedec) {
-    const redecs = [...new Set(Object.values(MAPA_REDECS_RJ))].sort();
-    redecs.forEach(r => selRedec.innerHTML += `<option value="${r}">${r}</option>`);
-  }
-  if (selMun) {
-    atualizarDropdownMunicipios();
-  }
-  if (selTipo && tipo === "sisgeo") {
-    const tipos = [...new Set(todosRegistros.map(r => r.tipo).filter(Boolean))].sort();
-    tipos.forEach(t => selTipo.innerHTML += `<option value="${t}">${t}</option>`);
-  }
-}
-
-function atualizarDropdownMunicipios() {
-  const selMun = document.getElementById("filtroMun");
-  if (!selMun) return;
-  const valAtual = selMun.value;
-  selMun.innerHTML = '<option value="TODOS">Todos os Municípios</option>';
-
-  let muns = Object.keys(MAPA_REDECS_RJ);
-  if (redecAtiva !== "ALL" && redecAtiva !== "TODAS") {
-    muns = muns.filter(m => normalizarTexto(MAPA_REDECS_RJ[m]) === normalizarTexto(redecAtiva));
-  }
-  muns.sort((a,b) => a.localeCompare(b, "pt-BR"));
-  muns.forEach(m => selMun.innerHTML += `<option value="${m}">${m}</option>`);
-  if (muns.includes(valAtual)) selMun.value = valAtual;
-}
-
-function anexarEventosModulo() {
-  const selR = document.getElementById("filtroRedec");
-  const selM = document.getElementById("filtroMun");
-  const selT = document.getElementById("filtroTipo");
-  const txt = document.getElementById("filtroTexto");
-
-  if (selR) {
-    selR.addEventListener("change", (e) => {
-      redecAtiva = e.target.value;
-      municipioAtivo = "TODOS";
-      atualizarDropdownMunicipios();
-      filtrar();
-    });
-  }
-
-  if (selM) {
-    selM.addEventListener("change", (e) => {
-      municipioAtivo = e.target.value;
-      filtrar();
-    });
-  }
-
-  if (selT) selT.addEventListener("change", filtrar);
-  if (txt) txt.addEventListener("input", filtrar);
-}
-
-function definirLimitesDatasIniciais() {
-  const datas = todosRegistros.map(r => r.d_iso).filter(Boolean).sort();
-  if (datas.length === 0) return;
-
-  const dIni = document.getElementById("dataInicio");
-  const dFim = document.getElementById("dataFim");
-  dIni.min = datas[0]; dIni.max = datas[datas.length - 1];
-  dFim.min = datas[0]; dFim.max = datas[datas.length - 1];
-  dIni.value = datas[0];
-  dFim.value = datas[datas.length - 1];
-}
-
-function filtrar() {
-  const conf = CONFIG_MODULOS[abaAtiva] || { tipo: "generico", temPeriodo: false };
-  const tipo = conf.tipo;
-
-  const dtIni = document.getElementById("dataInicio").value;
-  const dtFim = document.getElementById("dataFim").value;
-  const fTexto = normalizarTexto(document.getElementById("filtroTexto")?.value);
-  const fTipo = document.getElementById("filtroTipo")?.value;
-
-  filtrados = todosRegistros.filter(item => {
-    if (conf.temPeriodo && item.d_iso) {
-      if (dtIni && item.d_iso < dtIni) return false;
-      if (dtFim && item.d_iso > dtFim) return false;
-    }
-
-    if (redecAtiva && redecAtiva !== "ALL" && redecAtiva !== "TODAS") {
-      if (normalizarTexto(item.r) !== normalizarTexto(redecAtiva)) return false;
-    }
-    if (municipioAtivo && municipioAtivo !== "TODOS") {
-      if (normalizarTexto(item.m) !== normalizarTexto(municipioAtivo)) return false;
-    }
-
-    if (tipo === "sisgeo") {
-      if (fTipo && fTipo !== "TODAS" && item.tipo !== fTipo) return false;
-      if (fTexto && !normalizarTexto(`${item.m} ${item.bairro} ${item.endereco} ${item.tipo} ${item.subtipo}`).includes(fTexto)) return false;
-    } else if (tipo === "eventos") {
-      if (fTipo === "desliz" && !(item.dz > 0)) return false;
-      if (fTipo === "inund" && !(item.in > 0)) return false;
-      if (fTipo === "arvore" && !(item.ar > 0)) return false;
-      if (fTipo === "desabam" && !(item.es > 0)) return false;
-      if (fTexto && !normalizarTexto(`${item.r} ${item.m} ${item.desc} ${item.dc}`).includes(fTexto)) return false;
-    }
-
-    return true;
-  });
-
-  if (conf.temPeriodo && dtIni && dtFim) {
-    document.getElementById("periodoResumoLabel").textContent = `Exibindo: ${formatarParaDDMMAAAA(dtIni)} até ${formatarParaDDMMAAAA(dtFim)} (${filtrados.length} registros)`;
-  }
-
-  atualizarKPIs(tipo);
-  atualizarGraficos(tipo);
-  atualizarCamadasMapa();
-  pagina = 1;
-  renderizarTabela();
-}
-
-function atualizarKPIs(tipo) {
-  if (tipo === "sisgeo") {
-    const total = filtrados.length;
-    const munsSet = new Set(filtrados.map(i => i.m).filter(m => m && !m.includes("NÃO INFORMADO")));
-    const comCoords = filtrados.filter(i => i.tem_coords).length;
-
-    const contMun = {};
-    filtrados.forEach(i => { if (i.m) contMun[i.m] = (contMun[i.m] || 0) + 1; });
-    const topMunSort = Object.entries(contMun).sort((a, b) => b[1] - a[1]);
-    const topNome = topMunSort.length > 0 ? topMunSort[0][0] : "-";
-    const topQtd = topMunSort.length > 0 ? topMunSort[0][1] : 0;
-
-    document.getElementById("kpiSisTotal").textContent = Number(total).toLocaleString('pt-BR');
-    document.getElementById("kpiSisMuns").textContent = munsSet.size;
-    document.getElementById("kpiSisCoords").textContent = `${Number(comCoords).toLocaleString('pt-BR')} (${total > 0 ? Math.round((comCoords/total)*100) : 0}%)`;
-    document.getElementById("kpiSisTopMun").textContent = topNome;
-    document.getElementById("kpiSisTopMunSub").textContent = `${topQtd} chamados`;
-  } else if (tipo === "eventos") {
-    const sum = (fn) => filtrados.reduce((a, b) => a + (fn(b) || 0), 0);
-    document.getElementById("kpiOcorr").textContent = Number(sum(b => b.o)).toLocaleString('pt-BR');
-    document.getElementById("kpiObitos").textContent = Number(sum(b => b.ob)).toLocaleString('pt-BR');
-    document.getElementById("kpiDesab").textContent = Number(sum(b => b.db)).toLocaleString('pt-BR');
-    document.getElementById("kpiDesal").textContent = Number(sum(b => b.dl)).toLocaleString('pt-BR');
-  }
-}
-
-function atualizarGraficos(tipo) {
-  if (tipo === "sisgeo") {
-    const munMap = {}, tipoMap = {};
-    filtrados.forEach(i => {
-      if (i.m && !i.m.includes("NÃO INFORMADO")) munMap[i.m] = (munMap[i.m] || 0) + 1;
-      if (i.tipo) tipoMap[i.tipo] = (tipoMap[i.tipo] || 0) + 1;
-    });
-
-    renderizarBarraGenerica("chartSisgeoMuns", munMap, "var(--orange)", "chamados");
-    renderizarBarraGenerica("chartSisgeoTipos", tipoMap, "var(--blue)", "chamados");
-  } else if (tipo === "eventos") {
-    const redecMap = {}, danosMap = {};
-    filtrados.forEach(i => {
-      if (!i.r || i.r.includes("ESTADUAL")) return;
-      redecMap[i.r] = (redecMap[i.r] || 0) + (i.o || 1);
-      danosMap[i.r] = (danosMap[i.r] || 0) + (i.dl || 0);
-    });
-    renderizarBarraGenerica("chartRedecBarras", redecMap, "var(--orange)");
-    renderizarBarraGenerica("chartDanosBarras", danosMap, "var(--blue)", "pessoas");
-  }
-}
-
-function renderizarBarraGenerica(elemId, dataMap, cor, sufixo = "") {
-  const el = document.getElementById(elemId);
-  if (!el) return;
-  el.innerHTML = "";
-  const sorted = Object.entries(dataMap).sort((a, b) => b[1] - a[1]);
-  const maxVal = sorted.length > 0 ? sorted[0][1] : 1;
-
-  if (sorted.length === 0) {
-    el.innerHTML = `<div style="font-size:10.5px; color:var(--text-muted); padding:6px 0;">Sem registros.</div>`;
-    return;
-  }
-
-  sorted.slice(0, 6).forEach(([label, val]) => {
-    const perc = Math.round((val / maxVal) * 100);
-    el.innerHTML += `
-      <div class="bar-row">
-        <div class="bar-label-line">
-          <span style="font-weight:600; color:#cbd5e1;">${label}</span>
-          <span style="font-weight:700; color:#fff;">${Number(val).toLocaleString('pt-BR')} ${sufixo}</span>
-        </div>
-        <div class="bar-track"><div class="bar-fill" style="width:${perc}%; background:${cor};"></div></div>
-      </div>`;
-  });
-}
-
-function renderizarTabela() {
-  const conf = CONFIG_MODULOS[abaAtiva] || { tipo: "generico" };
-  const tipo = conf.tipo;
-  const thead = document.getElementById("tabelaCabecalho");
-  const tbody = document.getElementById("tabelaCorpo");
-  thead.innerHTML = ""; tbody.innerHTML = "";
-
-  const total = filtrados.length;
-  const totalPags = Math.ceil(total / porPagina) || 1;
-  document.getElementById("tabelaContador").textContent = `${total} registro(s)`;
-  document.getElementById("pageTxt").textContent = `Pág. ${pagina} / ${totalPags}`;
-  document.getElementById("btnAnt").disabled = (pagina <= 1);
-  document.getElementById("btnProx").disabled = (pagina >= totalPags);
-
-  if (total === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Nenhum registro encontrado.</td></tr>`;
-    return;
-  }
-
-  const inicio = (pagina - 1) * porPagina;
-  const itens = filtrados.slice(inicio, inicio + porPagina);
-
-  if (tipo === "sisgeo") {
-    thead.innerHTML = `
-      <tr>
-        <th>Data/Hora</th>
-        <th>Município</th>
-        <th>Tipologia</th>
-        <th style="min-width:160px;">Endereço</th>
-        <th>Viatura</th>
-        <th style="text-align:center;">GPS</th>
-      </tr>`;
-
-    itens.forEach(i => {
-      tbody.innerHTML += `
-        <tr>
-          <td style="white-space:nowrap; font-family:monospace; color:var(--text-muted);">
-            <div style="color:#cbd5e1; font-weight:600;">${i.d_fmt}</div>
-            <div style="font-size:10px;">${i.h}</div>
-          </td>
-          <td style="white-space:nowrap;">
-            <div style="font-weight:700; color:#fff;">${i.m}</div>
-            <div style="font-size:10px; color:var(--text-muted);">${i.bairro || '-'}</div>
-          </td>
-          <td>
-            <span class="badge badge-arvore">${i.tipo}</span>
-            <div style="color:var(--text-muted); font-size:10px;">${i.subtipo || ''}</div>
-          </td>
-          <td style="color:var(--text-muted); font-size:10px;">${i.endereco || '-'}</td>
-          <td style="white-space:nowrap; font-family:monospace; color:#38bdf8;">${i.viatura || '-'}</td>
-          <td style="text-align:center;">${i.tem_coords ? `<span class="badge badge-ativo">OK</span>` : `<span class="badge" style="background:#334155; color:#94a3b8;">-</span>`}</td>
-        </tr>`;
-    });
-  }
-}
