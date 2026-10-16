@@ -2,13 +2,20 @@
    CONTROLE DO MAPA LEAFLET, ESRI CANVAS, COROPLÉTICO E FOCO EM REDEC
    ========================================================================= */
 
+// Limites geográficos reais do Estado do Rio de Janeiro (enquadra 100% sem cortes)
+const RJ_BOUNDS = [
+  [-23.38, -44.90], // Sudoeste (Paraty)
+  [-20.76, -40.95]  // Nordeste (São Francisco de Itabapoana / Porciúncula)
+];
+
 let mapInstance = null;
 let markersLayerGroup = null;
 let currentScopeBounds = null;
 let popupCloseTimer = null;
 let redecAtiva = "ALL";
+let municipioAtivo = "TODOS";
 let MUNICIPIOS_ESCOPO = [];
-let geojsonDataGlobal = null;
+let geojsonDataCache = null;
 
 function atualizarMunicipiosEscopo() {
   if (redecAtiva === "ALL" || redecAtiva === "TODAS") {
@@ -25,22 +32,45 @@ function atualizarMunicipiosEscopo() {
 }
 
 function obterCorPorQuantidade(qtd) {
-  if (qtd > 50) return '#b91c1c';
-  if (qtd > 20) return '#ea580c';
-  if (qtd > 5)  return '#fb923c';
-  if (qtd > 0)  return '#fed7aa';
-  return '#D4DAE3';
+  if (qtd > 50) return '#b91c1c'; // Vermelho intenso
+  if (qtd > 20) return '#ea580c'; // Laranja forte
+  if (qtd > 5)  return '#fb923c'; // Laranja médio
+  if (qtd > 0)  return '#fed7aa'; // Pêssego suave
+  return '#D4DAE3';               // Cinzento claro (sem ocorrências)
 }
 
 function obterEstiloFeature(feature, escopoSet, contagemMun) {
   const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
   const isNoEscopo = escopoSet.has(normalizarTexto(canonico));
+  const isMunSelecionado = (municipioAtivo !== "TODOS" && normalizarTexto(canonico) === normalizarTexto(municipioAtivo));
   const qtd = contagemMun[normalizarTexto(canonico)] || 0;
   const isRedecEspecifica = (redecAtiva !== "ALL" && redecAtiva !== "TODAS");
 
+  // Se um município específico está selecionado:
+  if (municipioAtivo !== "TODOS") {
+    if (isMunSelecionado) {
+      return {
+        fillColor: qtd > 0 ? obterCorPorQuantidade(qtd) : "#2454A6",
+        fillOpacity: 0.9,
+        color: "#ffffff",
+        weight: 2.5,
+        opacity: 1
+      };
+    }
+    return {
+      fillColor: "transparent",
+      fillOpacity: 0,
+      color: "#64748B",
+      weight: 0.8,
+      dashArray: "2, 2",
+      opacity: 0.4
+    };
+  }
+
+  // Se uma REDEC específica está selecionada:
   if (isRedecEspecifica) {
     if (isNoEscopo) {
-      // MUNICÍPIOS DA REDEC: TOTALMENTE PREENCHIDOS E COLORIDOS
+      // MUNICÍPIOS DA REDEC: TOTALMENTE PREENCHIDOS E DESTACADOS
       return {
         fillColor: qtd > 0 ? obterCorPorQuantidade(qtd) : "#2454A6",
         fillOpacity: 0.85,
@@ -49,57 +79,74 @@ function obterEstiloFeature(feature, escopoSet, contagemMun) {
         opacity: 1
       };
     } else {
-      // FORA DA REDEC: APENAS CONTORNO PONTILHADO (TRANSPARENTE)
+      // FORA DA REDEC: APENAS CONTORNO PONTILHADO (SEM PREENCHIMENTO)
       return {
         fillColor: "transparent",
         fillOpacity: 0,
         color: "#64748B",
         weight: 0.8,
         dashArray: "2, 2",
-        opacity: 0.5
+        opacity: 0.45
       };
     }
-  } else {
-    // TODAS AS REDECS: COROPLÉTICO PREENCHIDO
-    return {
-      fillColor: obterCorPorQuantidade(qtd),
-      fillOpacity: qtd > 0 ? 0.85 : 0.5,
-      color: "#ffffff",
-      weight: 1.2,
-      opacity: 1
-    };
   }
+
+  // TODAS AS REDECS: MAPA COROPLÉTICO COMPLETO
+  return {
+    fillColor: obterCorPorQuantidade(qtd),
+    fillOpacity: qtd > 0 ? 0.85 : 0.5,
+    color: "#ffffff",
+    weight: 1.2,
+    opacity: 1
+  };
 }
 
-async function obterGeoJsonSeguro() {
-  if (geojsonDataGlobal && geojsonDataGlobal.features) return geojsonDataGlobal;
+// CARREGAMENTO ROBUSTO DO GEOJSON (Procura variável global ou faz fetch em múltiplos caminhos)
+async function carregarGeoJsonGarantido() {
+  if (geojsonDataCache && geojsonDataCache.features) return geojsonDataCache;
+
+  // 1. Tenta pegar a variável declarada em mapa.js
   try {
     if (typeof GEOJSON !== "undefined" && GEOJSON.features) {
-      geojsonDataGlobal = GEOJSON;
-      return geojsonDataGlobal;
+      geojsonDataCache = GEOJSON;
+      return geojsonDataCache;
+    }
+    if (window.GEOJSON && window.GEOJSON.features) {
+      geojsonDataCache = window.GEOJSON;
+      return geojsonDataCache;
+    }
+    if (window.geojsonRio && window.geojsonRio.features) {
+      geojsonDataCache = window.geojsonRio;
+      return geojsonDataCache;
     }
   } catch (e) {}
 
-  try {
-    const resp = await fetch("./mapa.js");
-    if (resp.ok) {
-      const jsText = await resp.text();
-      const s = jsText.indexOf("{"), e = jsText.lastIndexOf("}");
-      if (s !== -1 && e !== -1) {
-        geojsonDataGlobal = JSON.parse(jsText.substring(s, e + 1));
-        return geojsonDataGlobal;
+  // 2. Se não estiver no escopo global, busca via fetch testando caminhos relativos
+  const caminhos = ["mapa.js", "./mapa.js", "../mapa.js"];
+  for (const path of caminhos) {
+    try {
+      const resp = await fetch(path);
+      if (resp.ok) {
+        const text = await resp.text();
+        const start = text.indexOf("{");
+        const end = text.lastIndexOf("}");
+        if (start !== -1 && end !== -1) {
+          geojsonDataCache = JSON.parse(text.substring(start, end + 1));
+          return geojsonDataCache;
+        }
       }
-    }
-  } catch (err) {
-    console.warn("Aguardando mapa.js...");
+    } catch (err) {}
   }
+
   return null;
 }
 
 function initMap() {
   if (!mapInstance) {
-    mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false }).setView([-22.35, -42.7], 7.5);
-    
+    // Inicialização com limites exatos do Estado do Rio de Janeiro
+    mapInstance = L.map("map", { zoomControl: true, scrollWheelZoom: false });
+    mapInstance.fitBounds(RJ_BOUNDS, { padding: [10, 10] });
+
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
       attribution: "Tiles &copy; Esri &mdash; SEDEC RJ",
       maxZoom: 14
@@ -134,6 +181,7 @@ async function atualizarCamadasMapa() {
   atualizarMunicipiosEscopo();
   const ESCOPO_SET = new Set(MUNICIPIOS_ESCOPO.map(m => normalizarTexto(m)));
 
+  // Contagem de ocorrências por município
   const contagemMun = {};
   filtrados.forEach(item => {
     const cNome = getNomeCanonicoMunicipio(item.m);
@@ -141,17 +189,17 @@ async function atualizarCamadasMapa() {
     if (norm) contagemMun[norm] = (contagemMun[norm] || 0) + (item.o || 1);
   });
 
+  // Limpa camadas anteriores (SEM PISCAR)
   if (window._geojsonLayer) {
     mapInstance.removeLayer(window._geojsonLayer);
   }
   markersLayerGroup.clearLayers();
 
-  const dadosGeoJson = await obterGeoJsonSeguro();
+  const dadosGeoJson = await carregarGeoJsonGarantido();
 
   if (dadosGeoJson && dadosGeoJson.features && dadosGeoJson.features.length) {
     function onEachFeature(feature, layer) {
       const canonico = getNomeCanonicoMunicipio(feature.properties.NM_MUN);
-      const isNoEscopo = ESCOPO_SET.has(normalizarTexto(canonico));
       const redecNome = getRedecDoMunicipio(canonico);
       const qtd = contagemMun[normalizarTexto(canonico)] || 0;
 
@@ -191,25 +239,30 @@ async function atualizarCamadasMapa() {
       onEachFeature
     }).addTo(mapInstance);
 
-    const camadasEscopo = window._geojsonLayer.getLayers().filter(l => 
-      ESCOPO_SET.has(normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties.NM_MUN)))
-    );
-
-    if (camadasEscopo.length > 0) {
-      const bounds = L.featureGroup(camadasEscopo).getBounds();
-      if (bounds.isValid()) {
-        currentScopeBounds = bounds;
-        mapInstance.fitBounds(bounds, { padding: [18, 18], animate: true });
+    // AJUSTE DINÂMICO DE ZOOM (MUNICÍPIO / REDEC / ESTADO)
+    if (municipioAtivo !== "TODOS") {
+      const camadaMun = window._geojsonLayer.getLayers().find(l => 
+        normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties.NM_MUN)) === normalizarTexto(municipioAtivo)
+      );
+      if (camadaMun) {
+        currentScopeBounds = camadaMun.getBounds();
+        mapInstance.fitBounds(currentScopeBounds, { padding: [30, 30], animate: true, duration: 0.6 });
+      }
+    } else if (redecAtiva !== "ALL" && redecAtiva !== "TODAS") {
+      const camadasEscopo = window._geojsonLayer.getLayers().filter(l => 
+        ESCOPO_SET.has(normalizarTexto(getNomeCanonicoMunicipio(l.feature.properties.NM_MUN)))
+      );
+      if (camadasEscopo.length > 0) {
+        currentScopeBounds = L.featureGroup(camadasEscopo).getBounds();
+        mapInstance.fitBounds(currentScopeBounds, { padding: [20, 20], animate: true, duration: 0.6 });
       }
     } else {
-      currentScopeBounds = window._geojsonLayer.getBounds();
+      currentScopeBounds = L.latLngBounds(RJ_BOUNDS);
       mapInstance.fitBounds(currentScopeBounds, { padding: [10, 10], animate: true });
     }
-  } else {
-    setTimeout(atualizarCamadasMapa, 300);
   }
 
-  // Marcadores de ocorrências georreferenciadas
+  // PLOTAGEM DOS PONTOS (SEM PISCAR)
   const pontosComCoords = filtrados.filter(i => i.tem_coords);
   pontosComCoords.slice(0, 300).forEach(pt => {
     const marker = L.circleMarker([pt.lat, pt.lon], {
@@ -237,7 +290,7 @@ async function atualizarCamadasMapa() {
   }, 60);
 }
 
-// Redimensionamento responsivo
+// Redimensionamento inteligente
 let resizeDebounce = null;
 window.addEventListener("resize", () => {
   clearTimeout(resizeDebounce);
