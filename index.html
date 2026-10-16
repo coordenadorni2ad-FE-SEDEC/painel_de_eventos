@@ -1,125 +1,184 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Painel Executivo de Defesa Civil — SEDEC-RJ</title>
-
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
-
-  <!-- Nosso arquivo de estilos modularizado -->
-  <link rel="stylesheet" href="css/styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Monitoramento - SEDEC-RJ / REDECs</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- CSS do Projeto -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header class="header">
-    <div class="header-title-box">
-      <div class="brand-logo-container">
-        <img id="imgLogo" src="logo.png" alt="Logo Defesa Civil" onerror="tratarErroLogo(this)">
-      </div>
-      <div>
-        <h1 id="painelTituloPrincipal">Painel Executivo de Defesa Civil</h1>
-        <p id="subHeaderStatus">Monitoramento Operacional SEDEC-RJ</p>
-      </div>
-    </div>
-    
-    <div class="header-actions">
-      <div class="nav-tabs" id="containerNavTabs"></div>
-      <div class="status-pill">
-        <span class="dot" id="statusDot"></span>
-        <span id="statusText">Conectando...</span>
-      </div>
-      <button class="btn-sync" id="btnSync">
-        <svg id="syncIcon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-        </svg>
-        <span>Sincronizar</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- BARRA DE CONTROLE DE PERÍODO -->
-  <div class="period-highlight-bar" id="barraPeriodo">
-    <div class="period-title-group">
-      <h2>Filtro de Período</h2>
-      <span id="periodoResumoLabel">Selecione as datas para atualizar os dados</span>
-    </div>
-
-    <div class="period-inputs-wrap">
-      <div class="date-input-field">
-        <label>De</label>
-        <input type="date" id="dataInicio">
-      </div>
-      <div class="date-input-field">
-        <label>Até</label>
-        <input type="date" id="dataFim">
-      </div>
-      <div class="preset-buttons">
-        <button class="btn-preset" data-preset="hoje">Hoje</button>
-        <button class="btn-preset" data-preset="7d">7 Dias</button>
-        <button class="btn-preset" data-preset="30d">30 Dias</button>
-        <button class="btn-preset" data-preset="mes">Mês Atual</button>
-        <button class="btn-preset active" data-preset="tudo">Tudo</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- WORKSPACE PRINCIPAL: ESQUERDA (DADOS) vs DIREITA (MAPA) -->
-  <main class="main-workspace">
-    <div class="col-left">
-      <div class="kpi-grid" id="containerKPIs"></div>
-      <div class="filter-box" id="containerFiltros"></div>
-      <div class="dashboard-grid" id="containerGraficos"></div>
-
-      <!-- TABELA OPERACIONAL -->
-      <div class="table-panel">
-        <div class="table-top">
-          <div>
-            <div class="chart-title" id="tabelaTituloAba">Registros Detalhados</div>
-            <div id="tabelaContador" style="font-size: 10px; color: var(--text-muted);">Processando...</div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <button id="btnAnt" class="pagination-btn">Anterior</button>
-            <span id="pageTxt" style="font-size: 11px; color: var(--text-muted);">Pág. 1 / 1</span>
-            <button id="btnProx" class="pagination-btn">Próxima</button>
-          </div>
+    <!-- CABEÇALHO SUPERIOR -->
+    <header class="top-header">
+        <div class="brand-area">
+            <img src="logo.png" alt="Logo SEDEC-RJ" class="brand-logo" onerror="this.style.display='none'">
+            <div class="brand-titles">
+                <h1>Painel de Monitoramento de Defesa Civil</h1>
+                <span class="subtitle">SEDEC-RJ • Coordenadorias Regionais de Defesa Civil (REDECs)</span>
+            </div>
         </div>
-        <div class="table-wrapper">
-          <table id="tabelaPrincipal">
-            <thead id="tabelaCabecalho"></thead>
-            <tbody id="tabelaCorpo"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
 
-    <!-- COLUNA DA DIREITA: MAPA FIXADO -->
-    <div class="col-right">
-      <div class="map-panel" id="painelMapa">
-        <div class="map-header">
-          <div class="chart-title" id="mapTitle">Estado do Rio de Janeiro (92 municípios)</div>
-          <button class="btn-reset-map" id="btnResetMap">Enquadrar Estado</button>
+        <div class="header-actions">
+            <div class="sync-status-box">
+                <span id="status-indicator" class="status-dot online"></span>
+                <span id="last-sync-text">Carregando base...</span>
+            </div>
+            <button id="btn-sync" class="btn-sync" type="button" title="Sincronizar com a Planilha">
+                &#x21bb; Sincronizar
+            </button>
         </div>
+    </header>
+
+    <!-- BARRA DE MÓDULOS (ABAS) E PERÍODO -->
+    <section class="navigation-bar">
+        <nav id="module-tabs" class="module-tabs">
+            <!-- Abas geradas dinamicamente via js/app.js -->
+        </nav>
+
+        <div class="period-bar">
+            <div class="quick-periods">
+                <button type="button" class="btn-period" data-period="hoje">Hoje</button>
+                <button type="button" class="btn-period" data-period="7d">7D</button>
+                <button type="button" class="btn-period" data-period="30d">30D</button>
+                <button type="button" class="btn-period" data-period="mes">Mês Atual</button>
+                <button type="button" class="btn-period active" data-period="tudo">Tudo</button>
+            </div>
+            <div class="custom-dates">
+                <label for="date-start">De:</label>
+                <input type="date" id="date-start">
+                <label for="date-end">Até:</label>
+                <input type="date" id="date-end">
+            </div>
+        </div>
+    </section>
+
+    <!-- LAYOUT PRINCIPAL EM 2 COLUNAS -->
+    <main class="dashboard-layout">
         
-        <div id="map"></div>
+        <!-- COLUNA ESQUERDA: KPIs, Filtros, Gráficos e Tabela -->
+        <section class="left-panel">
+            
+            <!-- Cards de KPIs -->
+            <div class="kpi-grid">
+                <div class="kpi-card highlight">
+                    <span class="kpi-label">Total de Registros</span>
+                    <strong class="kpi-value" id="kpi-total">0</strong>
+                    <span class="kpi-sub" id="kpi-modulo-nome">Módulo Ativo</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Municípios Atingidos</span>
+                    <strong class="kpi-value" id="kpi-municipios">0</strong>
+                    <span class="kpi-sub">de 92 no Estado</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">REDECs Acionadas</span>
+                    <strong class="kpi-value" id="kpi-redecs">0</strong>
+                    <span class="kpi-sub">de 11 Regionais</span>
+                </div>
+                <div class="kpi-card">
+                    <span class="kpi-label">Regional em Destaque</span>
+                    <strong class="kpi-value kpi-text" id="kpi-top-redec">-</strong>
+                    <span class="kpi-sub" id="kpi-top-redec-qtd">0 ocorrências</span>
+                </div>
+            </div>
 
-        <div class="map-legend" id="legendContainer">
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#2454A6;"></div> Na Regional</div>
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#D4DAE3;"></div> Fora da Seleção</div>
-          <div class="map-legend-item"><div class="map-legend-swatch" style="background:#ea580c; border-radius:50%;"></div> Ponto de Ocorrência</div>
-        </div>
-      </div>
-    </div>
-  </main>
+            <!-- Barra de Filtros Dependentes -->
+            <div class="filters-card">
+                <div class="filter-group">
+                    <label for="select-redec">Regional (REDEC)</label>
+                    <select id="select-redec">
+                        <option value="TODAS">Todas as REDECs</option>
+                    </select>
+                </div>
 
-  <!-- SCRIPTS EXTERNOS E MÓDULOS NA ORDEM CORRETA -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-  <script src="mapa.js"></script>
-  <script src="js/config.js"></script>
-  <script src="js/data.js"></script>
-  <script src="js/mapa_controller.js"></script>
-  <script src="js/app.js"></script>
+                <div class="filter-group">
+                    <label for="select-municipio">Município</label>
+                    <select id="select-municipio">
+                        <option value="TODOS">Todos os Municípios</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-search">
+                    <label for="input-busca">Busca Rápida</label>
+                    <input type="text" id="input-busca" placeholder="Pesquisar evento, local, status...">
+                </div>
+
+                <div class="filter-actions">
+                    <button type="button" id="btn-limpar-filtros" class="btn-secondary">Limpar Filtros</button>
+                </div>
+            </div>
+
+            <!-- Resumo Visual por REDEC (Gráfico de Barras Horizontais) -->
+            <div class="chart-card">
+                <div class="card-header">
+                    <h2>Distribuição por Regional (REDEC)</h2>
+                    <span class="card-badge" id="chart-subtitle">Clique em uma barra para filtrar</span>
+                </div>
+                <div id="redec-bars-container" class="redec-bars-container">
+                    <!-- Barras geradas via JS -->
+                </div>
+            </div>
+
+            <!-- Tabela Detalhada com Paginação -->
+            <div class="table-card">
+                <div class="card-header">
+                    <h2>Registros Detalhados</h2>
+                    <span class="table-counter" id="table-counter">0 registros encontrados</span>
+                </div>
+                <div class="table-responsive">
+                    <table id="data-table">
+                        <thead id="table-head">
+                            <!-- Cabeçalho dinâmico -->
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Linhas dinâmicas -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination-bar">
+                    <button type="button" id="btn-prev-page" class="btn-page" disabled>&laquo; Anterior</button>
+                    <span id="page-info">Página 1 de 1</span>
+                    <button type="button" id="btn-next-page" class="btn-page" disabled>Próxima &raquo;</button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- COLUNA DIREITA: Mapa Fixo -->
+        <aside class="right-panel">
+            <div class="map-wrapper">
+                <div class="map-toolbar">
+                    <span id="map-filter-status">Visão Estadual: Todas as REDECs (92 Municípios)</span>
+                    <button type="button" id="btn-reset-map" class="btn-map-reset" title="Enquadrar 100% do RJ">
+                        Enquadrar RJ
+                    </button>
+                </div>
+                <div id="map"></div>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Malha Territorial GeoJSON dos 92 Municípios (Arquivo existente na raiz) -->
+    <script src="mapa.js"></script>
+
+    <!-- Módulos JavaScript do Sistema -->
+    <script src="js/config.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/mapa_controller.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
